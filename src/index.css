@@ -1,0 +1,189 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
+@import "tailwindcss";
+
+:root {
+  /* Base */
+  --line-height-base: 1.4;
+  --letter-spacing-base: -0.025em;
+
+  /* Primary-Blue */
+  --color-blue-100: #E8F4F7;
+  --color-blue-200: #C4DCE1;
+  --color-blue-300: #A8CDD5;
+  --color-blue-400: #8FBEC9;
+  --color-blue-500: #81AEB9;
+  --color-blue-600: #6A9AA6;
+  --color-blue-700: #4F8090;
+  --color-blue-800: #3D6B78;
+  --color-blue-900: #30545C;
+  --color-blue-1000: #1E3840;
+
+  /* Primary-Beige */
+  --color-beige-100: #FAF7F3;
+  --color-beige-200: #F2ECE3;
+  --color-beige-300: #EDE4D6;
+  --color-beige-400: #E6D9C7;
+  --color-beige-500: #DED0BE;
+  --color-beige-600: #CDBDA8;
+  --color-beige-700: #B8A48E;
+  --color-beige-800: #A69580;
+  --color-beige-900: #8C7D6A;
+  --color-beige-1000: #6E6154;
+
+  /* Gray */
+  --color-gray-100: #F7F8F8;
+  --color-gray-200: #EAECEC;
+  --color-gray-300: #D5D9DA;
+  --color-gray-400: #BCC2C4;
+  --color-gray-500: #9EA7A9;
+  --color-gray-600: #7E898C;
+  --color-gray-700: #626E70;
+  --color-gray-800: #4A5557;
+  --color-gray-900: #333D3F;
+  --color-gray-1000: #1A2122;
+
+  /* Green */
+  --color-green-100: #EDF4EE;
+  --color-green-200: #CCE3CE;
+  --color-green-300: #AED3B1;
+  --color-green-400: #8DC294;
+  --color-green-500: #72B077;
+  --color-green-600: #5A9960;
+  --color-green-700: #447F49;
+  --color-green-800: #346438;
+  --color-green-900: #274D2B;
+  --color-green-1000: #17311B;
+
+  /* Red */
+  --color-red-100: #F5ECEA;
+  --color-red-200: #E8CBC7;
+  --color-red-300: #D9A9A3;
+  --color-red-400: #C9877F;
+  --color-red-500: #BB6B63;
+  --color-red-600: #A5524A;
+  --color-red-700: #8A3D36;
+  --color-red-800: #6E2E28;
+  --color-red-900: #52201C;
+  --color-red-1000: #34120F;
+}
+
+/* font/typography/border: @theme → :root에 변수 출력 → var() 참조 가능 */
+@theme {
+  --font-sans: "Pretendard", "Inter", sans-serif;
+
+  --font-size-nav: 1.75rem;
+
+  --font-size-display: 3.5rem;
+  --font-size-h1: 3rem;
+  --font-size-h2: 2.25rem;
+  --font-size-h3: 1.75rem;
+  --font-size-h4: 1.375rem;
+
+  --font-size-xl: 1.25rem;
+  --font-size-lg: 1.125rem;
+  --font-size-md: 1rem;
+  --font-size-sm: 0.875rem;
+  --font-size-xs: 0.75rem;
+
+  --border-width-1\.5: 1.5px;
+}
+
+/* colors: @theme inline → :root 변수 참조, 중복 선언 없이 Tailwind 유틸리티 생성 */
+@theme inline {
+  --color-blue-100: var(--color-blue-100);
+  --color-blue-200: var(--color-blue-200);
+  --color-blue-300: var(--color-blue-300);
+  --color-blue-400: var(--color-blue-400);
+  --color-blue-500: var(--color-blue-500);
+  --color-blue-600: var(--color-blue-600);
+  --color-blue-700: var(--color-blue-700);
+  --color-blue-800: var(--color-blue-800);
+  --color-blue-900: var(--color-blue-900);
+  --color-blue-1000: var(--color-blue-1000);
+
+  --color-beige-100: var(--color-beige-100);
+  --color-beige-200: var(--color-beige-200);
+  --color-beige-300: var(--color-beige-300);
+  --color-beige-400: var(--color-beige-400);
+  --color-beige-500: var(--color-beige-500);
+  --color-beige-600: var(--color-beige-600);
+  --color-beige-700: var(--color-beige-700);
+  --color-beige-800: var(--color-beige-800);
+  --color-beige-900: var(--color-beige-900);
+  --color-beige-1000: var(--color-beige-1000);
+
+  --color-gray-100: var(--color-gray-100);
+  --color-gray-200: var(--color-gray-200);
+  --color-gray-300: var(--color-gray-300);
+  --color-gray-400: var(--color-gray-400);
+  --color-gray-500: var(--color-gray-500);
+  --color-gray-600: var(--color-gray-600);
+  --color-gray-700: var(--color-gray-700);
+  --color-gray-800: var(--color-gray-800);
+  --color-gray-900: var(--color-gray-900);
+  --color-gray-1000: var(--color-gray-1000);
+
+  --color-green-100: var(--color-green-100);
+  --color-green-200: var(--color-green-200);
+  --color-green-300: var(--color-green-300);
+  --color-green-400: var(--color-green-400);
+  --color-green-500: var(--color-green-500);
+  --color-green-600: var(--color-green-600);
+  --color-green-700: var(--color-green-700);
+  --color-green-800: var(--color-green-800);
+  --color-green-900: var(--color-green-900);
+  --color-green-1000: var(--color-green-1000);
+
+  --color-red-100: var(--color-red-100);
+  --color-red-200: var(--color-red-200);
+  --color-red-300: var(--color-red-300);
+  --color-red-400: var(--color-red-400);
+  --color-red-500: var(--color-red-500);
+  --color-red-600: var(--color-red-600);
+  --color-red-700: var(--color-red-700);
+  --color-red-800: var(--color-red-800);
+  --color-red-900: var(--color-red-900);
+  --color-red-1000: var(--color-red-1000);
+}
+
+@layer base {
+  * {
+    font-family: var(--font-sans);
+    letter-spacing: var(--letter-spacing-base);
+    line-height: var(--line-height-base);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  html,
+  body {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+}
+
+@layer components {
+  /* nav */
+  .nav-default { font-size: var(--font-size-nav); font-weight: 400; }
+  .nav-active  { font-size: var(--font-size-nav); font-weight: 700; }
+
+  /* title */
+  .title-display { font-size: var(--font-size-display); font-weight: 700; }
+  .title-h1      { font-size: var(--font-size-h1);      font-weight: 700; }
+  .title-h2      { font-size: var(--font-size-h2);      font-weight: 600; }
+  .title-h3      { font-size: var(--font-size-h3);      font-weight: 600; }
+  .title-h4      { font-size: var(--font-size-h4);      font-weight: 600; }
+
+  /* body */
+  .body-xl { font-size: var(--font-size-xl); font-weight: 400; }
+  .body-lg { font-size: var(--font-size-lg); font-weight: 400; }
+  .body-md { font-size: var(--font-size-md); font-weight: 400; }
+  .body-sm { font-size: var(--font-size-sm); font-weight: 400; }
+  .body-xs { font-size: var(--font-size-xs); font-weight: 400; }
+}
