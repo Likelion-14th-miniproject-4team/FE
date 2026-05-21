@@ -8,6 +8,7 @@ export default function Input({
   placeholder = "텍스트를 입력하세요",
   isError = false,
   disabled = false,
+  width = "w-70",
 }) {
   return (
     <input
@@ -17,7 +18,7 @@ export default function Input({
       onChange={onChange}
       placeholder={placeholder}
       disabled={disabled}
-      className={`h-12 w-70 px-4 py-3 border-1.5 rounded-lg body-sm outline-none transition
+      className={`h-12 ${width} px-4 py-3 border-1.5 rounded-lg body-sm outline-none transition
         ${
           isError
             ? "bg-red-100 border-red-500 text-red-900 placeholder:text-red-900"
