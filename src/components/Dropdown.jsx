@@ -7,6 +7,7 @@ export default function Dropdown({
   onChange,
   placeholder = "옵션을 선택하세요",
   disabled = false,
+  width = "w-70",
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef(null);
@@ -43,7 +44,7 @@ export default function Dropdown({
         : "bg-blue-100 border-gray-300 text-blue-900 cursor-pointer hover:border-gray-400 active:border-gray-500";
 
   return (
-    <div className="relative w-70" ref={ref}>
+    <div className={`relative ${width}`} ref={ref}>
       {/* Trigger */}
       <div
         onClick={handleDropdown}

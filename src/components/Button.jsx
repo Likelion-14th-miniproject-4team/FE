@@ -22,6 +22,7 @@ export default function Button({
   onClick,
   bgColor = "var(--color-blue-900)",
   textColor = "var(--color-blue-100)",
+  className = "h-12 px-8 py-3 body-md",
 }) {
   const btnRef = useRef(null);
 
@@ -46,7 +47,7 @@ export default function Button({
         applyBg(shiftShade(bgColor, 200));
       }}
       onMouseUp={() => applyBg(shiftShade(bgColor, 100))}
-      className="h-12 px-8 py-3 body-md rounded-lg cursor-pointer appearance-none select-none"
+      className={`${className} rounded-lg cursor-pointer appearance-none select-none`}
     >
       {text}
     </button>
