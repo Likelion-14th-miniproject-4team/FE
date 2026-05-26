@@ -308,7 +308,11 @@ export default function RouteActive() {
           )}
 
           {/* 경로 상세 */}
+          
           <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="body-xs text-blue-900">길찾기</p>
+            </div>
             {routeSteps.map((step, index) => (
               <div key={step.id} className="flex items-start gap-3">
                 <span className="body-xs text-blue-1000 w-9 shrink-0 pt-2.5 text-right">
