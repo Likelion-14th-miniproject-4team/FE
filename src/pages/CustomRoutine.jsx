@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/Button";
+import Input from "../components/Input";
 
 export default function CustomRoutine() {
   const navigate = useNavigate();
@@ -88,28 +89,22 @@ export default function CustomRoutine() {
         <div className="mb-6">
           <p className="body-sm text-gray-500 mb-2">새 단계 추가</p>
           <div className="flex items-center gap-2">
-            <input
-              type="text"
+            <Input
+              id="newLabel"
               placeholder="단계 이름을 입력하세요"
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              className="flex-1 h-12 px-4 py-3 border-1.5 rounded-lg body-sm outline-none transition bg-blue-100 text-gray-900 placeholder:text-gray-500 hover:border-blue-500 focus:border-blue-500 border-gray-300"
+              width="flex-1"
             />
-            <input
+            <Input
+              id="newTime"
               type="number"
-              min={0}
               value={newTime}
               onChange={(e) => setNewTime(Number(e.target.value))}
-              className="w-16 h-12 px-3 border-1.5 rounded-lg body-sm outline-none transition text-center bg-blue-100 text-gray-900 hover:border-blue-500 focus:border-blue-500 border-gray-300"
+              width="w-16"
             />
             <span className="body-sm text-gray-500">분</span>
-            <button
-              onClick={handleAdd}
-              className="w-10 h-10 rounded-lg bg-blue-900 text-blue-100 text-xl font-bold flex items-center justify-center cursor-pointer hover:bg-blue-800 active:bg-blue-700 transition"
-            >
-              +
-            </button>
+            <Button text="+" onClick={handleAdd} className="w-10 h-10 rounded-lg text-xl font-bold" />
           </div>
         </div>
 
