@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import Dropdown from "../components/Dropdown"
+import { BsFillPersonFill } from "react-icons/bs";
  
 const routeHistory = [
   { id: 1, date: "26.05.03", route: "한국외대 글로벌 캠퍼스 백년관 → 모란역 6번 출구" },
@@ -14,30 +14,22 @@ const timeOptions = [
   { index: 1, value: "10"},
   { index: 2, value: "15"}
 ]
-function DefaultProfileIcon({ size = 80 }) {
-  return (
-    <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M8.33333 99.3127C8.33333 99.3127 0 99.3127 0 91.0367C0 82.7606 8.33334 57.9324 50 57.9324C91.6667 57.9324 100 82.7606 100 91.0367C100 99.3127 91.6667 99.3127 91.6667 99.3127H8.33333ZM50 49.6564C56.6304 49.6564 62.9893 47.0405 67.6777 42.3843C72.3661 37.7282 75 31.413 75 24.8282C75 18.2433 72.3661 11.9282 67.6777 7.27201C62.9893 2.61582 56.6304 0 50 0C43.3696 0 37.0107 2.61582 32.3223 7.27201C27.6339 11.9282 25 18.2433 25 24.8282C25 31.413 27.6339 37.7282 32.3223 42.3843C37.0107 47.0405 43.3696 49.6564 50 49.6564Z" fill="#7E898C"/>
-    </svg>
-
-  );
+function DefaultProfileIcon() {
+    return <BsFillPersonFill size={130} className="text-gray-600" />;
 }
  
 function RouteCard({ date, route }) {
   return (
     <div
-      className="flex items-center rounded-lg px-6 py-4"
-      style={{ backgroundColor: "rgba(237, 228, 214, 1)" }}
+      className="flex items-center bg-beige-300 rounded-lg px-6 py-4"
     >
       <span
-        className="title-h4 w-28 shrink-0"
-        style={{ color: "rgba(48, 84, 92, 1)" }}
+        className="title-h4 text-gray-1000 w-28 shrink-0"
       >
         {date}
       </span>
       <span
-        className="body-lg flex-1"
-        style={{ color: "rgba(48, 84, 92, 1)" }}
+        className="body-lg text-gray-1000 flex-1"
       >
         {route}
       </span>
@@ -65,34 +57,14 @@ function UserInfoModal({ isOpen, onClose, profileImage, onProfileChange }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 배경 오버레이 */}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
- 
       {/* 모달 */}
       <div
-        className="relative w-[400px] rounded-xl px-10 py-8"
-        style={{ backgroundColor: "rgba(168, 205, 213, 0.95)" }}
-      >
-        {/* 상단 버튼 */}
-        <div className="flex justify-between items-center mb-8">
-          {/* X 닫기 버튼 */}
-          <button onClick={onClose} className="p-1 hover:opacity-70 transition-opacity">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="black" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </button>
- 
-          {/* ✓ 확인 버튼 */}
-          <button onClick={onClose} className="p-1 hover:opacity-70 transition-opacity">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 12L10 17L20 7" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
- 
+        className="bg-blue-300 relative w-[400px] rounded-xl px-10 py-8"
+      > 
         {/* 프로필 이미지 */}
         <div className="flex flex-col items-center mb-8">
           <div
-            className="w-40 h-40 rounded-full flex items-center justify-center overflow-hidden mb-3 cursor-pointer"
-            style={{ backgroundColor: "rgba(232, 244, 247, 1)" }}
+            className="bg-blue-100 w-40 h-40 rounded-full flex items-center justify-center overflow-hidden mb-3 cursor-pointer"
             onClick={() => fileInputRef.current.click()}
           >
             {profileImage ? (
@@ -117,13 +89,30 @@ function UserInfoModal({ isOpen, onClose, profileImage, onProfileChange }) {
         </div>
  
         {/* 사용자 정보 */}
-        <div className="flex flex-col gap-4">
-          <p className="body-xl" style={{ color: "rgba(0, 0, 0, 1)" }}>
+        <div className="flex flex-col gap-4 items-center">
+          <p className="body-xl text-gray-1000">
             mail: lion@example.com
           </p>
-          <p className="body-xl" style={{ color: "rgba(0, 0, 0, 1)" }}>
+          <p className="body-xl text-gray-1000">
             phone: 010-0000-0000
           </p>
+        </div>
+        {/* 하단 버튼 */}
+        <div className="flex justify-between mt-8">
+          <Button
+            text="닫기"
+            onClick={onClose}
+            bgColor="var(--color-blue-500)"
+            textColor="var(--color-blue-100)"
+            className="h-12 px-8 py-3 body-md"
+          />
+          <Button
+            text="완료"
+            onClick={onClose}
+            bgColor="var(--color-blue-500)"
+            textColor="var(--color-blue-100)"
+            className="h-12 px-8 py-3 body-md"
+          />
         </div>
       </div>
     </div>
@@ -146,8 +135,7 @@ function AlarmSettingModal({ isOpen, onClose }){
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative w-[400px] rounded-xl px-10 py-8 flex flex-col"
-        style={{ backgroundColor: "rgba(168, 205, 213, 0.95)", minHeight: "400px" }}
+        className="relative bg-blue-300 [400px] rounded-xl px-10 py-8 flex flex-col"
       >
         {/* 드롭다운 + 라벨 */}
         <div className="flex items-center gap-4 mb-auto">
@@ -159,8 +147,7 @@ function AlarmSettingModal({ isOpen, onClose }){
             width="w-52"
           />
           <span
-            className="body-xl whitespace-nowrap"
-            style={{ color: "rgba(79, 128, 144, 1)" }}
+            className="body-xl text-gray-100 whitespace-nowrap"
           >
             분 전 알림
           </span>
@@ -169,14 +156,14 @@ function AlarmSettingModal({ isOpen, onClose }){
         {/* 하단 버튼 */}
         <div className="flex justify-between mt-8">
           <Button
-            text="취소"
+            text="닫기"
             onClick={onClose}
             bgColor="var(--color-blue-500)"
             textColor="var(--color-blue-100)"
             className="h-12 px-8 py-3 body-md"
           />
           <Button
-            text="설정"
+            text="완료"
             onClick={handleSave}
             bgColor="var(--color-blue-500)"
             textColor="var(--color-blue-100)"
@@ -190,7 +177,6 @@ function AlarmSettingModal({ isOpen, onClose }){
 
 
 export default function MyPage() {
-  const navigate = useNavigate();
   const [showUserInfo, setShowUserInfo] = useState(false);
   const [showAlarmSetting, setShowAlarmSetting] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -208,8 +194,7 @@ export default function MyPage() {
         <div className="flex flex-col items-center w-60 shrink-0">
           {/* 프로필 이미지 */}
           <div
-            className="w-48 h-48 rounded-full flex items-center justify-center overflow-hidden mb-4"
-            style={{ backgroundColor: "rgba(232, 244, 247, 1)" }}
+            className="bg-blue-100 w-48 h-48 rounded-full flex items-center justify-center overflow-hidden mb-4"
           >
             {profileImage ? (
               <img src={profileImage} alt="프로필" className="w-full h-full object-cover" />
@@ -220,8 +205,7 @@ export default function MyPage() {
  
           {/* 사용자 이름 */}
           <p
-            className="title-h4 mb-8"
-            style={{ color: "rgba(48, 84, 92, 1)" }}
+            className="title-h4 text-blue-900 mb-8"
           >
             사용자
           </p>
@@ -242,11 +226,10 @@ export default function MyPage() {
         </div>
  
         {/* 오른쪽: 지난 경로 기록 */}
-        <div className="flex-1">
-          <div className="border border-gray-200 rounded-xl px-10 py-8">
+        <div className="flex-1 bg-blue-100 rounded-lg">
+          <div className="border border-gray-200 rounded-lg px-10 py-8">
             <h2
-              className="title-h2 mb-6"
-              style={{ color: "rgba(48, 84, 92, 1)" }}
+              className="title-h2 text-gray-1000 mb-6"
             >
               지난 경로 기록
             </h2>
