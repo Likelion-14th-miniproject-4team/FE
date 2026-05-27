@@ -135,7 +135,7 @@ function AlarmSettingModal({ isOpen, onClose }){
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative bg-blue-300 [400px] rounded-xl px-10 py-8 flex flex-col"
+        className="relative bg-blue-300 w-[400px] rounded-xl px-10 py-8 flex flex-col"
       >
         {/* 드롭다운 + 라벨 */}
         <div className="flex items-center gap-4 mb-auto">
