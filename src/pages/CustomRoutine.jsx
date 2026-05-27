@@ -132,12 +132,11 @@ export default function CustomRoutine() {
 
                 {/* 이름 */}
                 {editingId === routine.id ? (
-                  <input
-                    autoFocus
+                  <Input
+                    id="editLabel"
                     value={editLabel}
                     onChange={(e) => setEditLabel(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleEditSave(routine.id)}
-                    className="flex-1 h-9 px-3 border-1.5 rounded-lg body-sm outline-none bg-blue-100 text-gray-900 border-blue-500"
+                    width="flex-1"
                   />
                 ) : (
                   <span className="flex-1 body-md text-blue-900">{routine.label}</span>
@@ -146,12 +145,12 @@ export default function CustomRoutine() {
                 {/* 시간 */}
                 {editingId === routine.id ? (
                   <div className="flex items-center gap-1">
-                    <input
+                    <Input
+                      id="editTime"
                       type="number"
-                      min={0}
                       value={editTime}
                       onChange={(e) => setEditTime(Number(e.target.value))}
-                      className="w-14 h-9 px-2 border-1.5 rounded-lg body-sm outline-none text-center bg-blue-100 text-gray-900 border-blue-500"
+                      width="w-14"
                     />
                     <span className="body-sm text-gray-500">분</span>
                   </div>
@@ -161,12 +160,11 @@ export default function CustomRoutine() {
 
                 {/* 버튼 */}
                 {editingId === routine.id ? (
-                  <button
+                  <Button
+                    text="저장"
                     onClick={() => handleEditSave(routine.id)}
-                    className="body-xs text-blue-900 border border-blue-300 rounded-lg px-3 py-1 hover:bg-blue-100 transition cursor-pointer"
-                  >
-                    저장
-                  </button>
+                    className="body-xs px-3 py-1 rounded-lg"
+                  />
                 ) : (
                   <button
                     onClick={() => handleEditStart(routine)}
