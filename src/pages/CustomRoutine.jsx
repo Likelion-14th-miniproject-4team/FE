@@ -150,7 +150,7 @@ export default function CustomRoutine() {
                       type="number"
                       value={editTime}
                       onChange={(e) => setEditTime(Number(e.target.value))}
-                      width="w-14"
+                      width="w-16"
                     />
                     <span className="body-sm text-gray-500">분</span>
                   </div>
