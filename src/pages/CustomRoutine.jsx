@@ -76,8 +76,9 @@ export default function CustomRoutine() {
       <div className="bg-blue-100 px-16 py-10">
         <div className="max-w-xl mx-auto">
           <p className="body-sm text-blue-500 mb-1">Custom Routine</p>
-          <h1 className="title-h2 text-blue-900 leading-tight">준비 단계</h1>
-          <h1 className="title-h2 text-blue-900 leading-tight mb-3">설정</h1>
+          <h1 className="title-h2 text-blue-900 leading-tight mb-3">
+            준비 단계<br />설정
+          </h1>
           <p className="body-sm text-gray-500">하루를 계획 있게 시작하세요.</p>
           <p className="body-sm text-gray-500">단계를 추가하고 드래그로 순서를 조정할 수 있어요.</p>
         </div>
