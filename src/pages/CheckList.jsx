@@ -26,7 +26,7 @@ function PinIcon({ active }) {
 }
 
 function PlayIcon() {
-  return <BsFillPlayFill size={40} className="text-blue-700" />;
+  return <BsFillPlayFill size={40} className="text-gray-600" />;
 }
 
 function CheckItem({ item, onToggle, onLabelChange, onDelete, onPin, showPin = true }) {
