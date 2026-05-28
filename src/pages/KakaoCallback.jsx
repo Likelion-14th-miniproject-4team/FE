@@ -16,7 +16,7 @@ export default function KakaoCallback() {
     } else {
       navigate("/", { replace: true });
     }
-  }, []);
+  }, [searchParams, navigate]);
 
   return null;
 }
