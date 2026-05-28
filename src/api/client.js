@@ -14,7 +14,7 @@ client.interceptors.request.use((config) => {
 
 // 응답 인터셉터 — 401 시 토큰 재발급 후 원래 요청 1회 재시도
 client.interceptors.response.use(
-  (response) => response,
+  (response) => response.data,
   async (error) => {
     const original = error.config;
 

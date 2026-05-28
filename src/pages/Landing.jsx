@@ -1,10 +1,8 @@
-import { useNavigate } from "react-router-dom";
+import React from "react";
 import Button from "../components/Button";
 import hero from "../assets/hero.svg";
 
 export default function Landing() {
-  const navigate = useNavigate();
-
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
       {/* 로고 */}
@@ -12,7 +10,7 @@ export default function Landing() {
         <img
           src={hero}
           alt="when2leave"
-          className="w-[340px] h-auto object-contain"
+          className="w-85 h-auto object-contain"
         />
       </div>
 
@@ -22,7 +20,6 @@ export default function Landing() {
           <span className="text-beige-800">when</span>
           <span className="text-blue-500">2</span>
           <span className="text-beige-800">leave</span>
-
         </p>
       </div>
 
@@ -33,10 +30,10 @@ export default function Landing() {
         </p>
       </div>
 
-      {/* 시작하기 버튼 */}
+      {/* 카카오 로그인 버튼 */}
       <Button
         text="카카오톡으로 로그인"
-        onClick={() => navigate("/route")}
+        onClick={() => { window.location.href = import.meta.env.VITE_KAKAO_LOGIN_URL; }}
         bgColor="var(--color-beige-500)"
         textColor="var(--color-blue-900)"
         className="h-15 px-12 py-3 title-h4"

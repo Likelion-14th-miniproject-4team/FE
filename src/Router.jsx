@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import Setting from "./pages/Setting";
 import Landing from "./pages/Landing";
+import KakaoCallback from "./pages/KakaoCallback";
 import RouteSearch from "./pages/RouteSearch";
 import RouteActive from "./pages/RouteActive";
 import CustomRoutine from "./pages/CustomRoutine";
@@ -23,6 +24,7 @@ export default function Router() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
 
         <Route element={<NavbarLayout />}>
           <Route path="/route" element={<RouteSearch />} />
