@@ -19,9 +19,10 @@ export default function Landing() {
       {/* when2leave 텍스트 */}
       <div className="mb-0.5">
         <p className="title-display tracking-wide">
-          <span style={{ color: "rgba(166, 149, 128, 1)" }}>when</span>
-          <span style={{ color: "rgba(129, 174, 185, 1)" }}>2</span>
-          <span style={{ color: "rgba(166, 149, 128, 1)" }}>leave</span>
+          <span className="text-beige-800">when</span>
+          <span className="text-blue-500">2</span>
+          <span className="text-beige-800">leave</span>
+
         </p>
       </div>
 
