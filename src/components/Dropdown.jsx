@@ -70,10 +70,10 @@ export default function Dropdown({
               key={option.index}
               onClick={() => handleSelect(option)}
               role="option"
-              aria-selected={value === option.value}
+              aria-selected={value === (option.label ?? option.value)}
               className="px-4 py-3 body-sm text-blue-900 bg-blue-100 cursor-pointer hover:bg-blue-200 active:bg-blue-300 transition whitespace-nowrap"
             >
-              {option.value}
+              {option.label ?? option.value}
             </li>
           ))}
         </ul>

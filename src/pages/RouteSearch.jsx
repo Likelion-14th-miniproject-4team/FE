@@ -1,48 +1,91 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineSearch } from "react-icons/ai";
 import Input from "../components/Input";
 import Dropdown from "../components/Dropdown";
 import Button from "../components/Button";
+import { getRoutines, getChecklists, searchRoute } from "../api/api";
 
+// MOCK 모드
+// 카카오 인증 연동 전 테스트용. API 연동 완료 후 false로 변경.
+const MOCK_MODE = true;
+
+const MOCK_ROUTINES = [
+  { id: "01", name: "양치", total_minutes: 3, active: true },
+  { id: "02", name: "씻기", total_minutes: 15, active: true },
+  { id: "03", name: "옷 입기", total_minutes: 10, active: true },
+];
+
+const MOCK_CHECKLISTS = {
+  todo: [
+    { id: 1, title: "지갑", checked: true, fixed: false, sort_order: 1 },
+    { id: 2, title: "핸드크림", checked: false, fixed: false, sort_order: 2 },
+  ],
+  must_do: [],
+};
+
+const MOCK_ROUTE_SEARCH = {
+  search_id: "mock-001",
+  origin: "자택",
+  destination: "한국외대 글로벌캠퍼스",
+  arrival_time: "12:28",
+  total_minutes: 88,
+  routine_minutes: 28,
+  recommended_departure_time: "11:28",
+  prep_start_time: "11:00",
+  slack_minutes: 12,
+  sub_paths: [
+    { traffic_type: "walk", section_time: 1, start_name: "집에서 출발", start_id: null },
+    { traffic_type: "walk", section_time: 1, start_name: "버스 정류장까지 도보 이동", start_id: null },
+    { traffic_type: "bus", section_time: 58, start_name: "1117 버스 탑승", start_id: null },
+    { traffic_type: "walk", section_time: 0, start_name: "한국외대 글로벌캠퍼스", start_id: null },
+  ],
+};
+
+//  설정 
 const transportOptions = [
-  { index: 0, value: "버스" },
-  { index: 1, value: "버스+지하철" },
-  { index: 2, value: "지하철" },
+  { index: 0, value: "subway", label: "지하철" },
+  { index: 1, value: "bus", label: "버스" },
+  { index: 2, value: "mixed", label: "버스+지하철" },
 ];
 
-const routines = [
-  { id: "01", label: "양치", time: "3분" },
-  { id: "02", label: "씻기", time: "15분" },
-  { id: "03", label: "옷 입기", time: "10분" },
-];
+function getCurrentTime() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
 
-const checklist = [
-  { id: 1, label: "지갑", checked: true },
-  { id: 2, label: "핸드크림", checked: false },
-];
+function addMinutes(timeStr, minutes) {
+  const [h, m] = timeStr.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
 
-const timeline = {
-  routine: [
-    { time: "11:00", label: "양치" },
-    { time: "11:03", label: "씻기" },
-    { time: "11:18", label: "옷 입기" },
-  ],
-  route: [
-    { time: "11:28", label: "집에서 출발" },
-    { time: "11:28", label: "집에서 출발" },
-    { time: "11:29", label: "버스 정류장까지 도보 이동" },
-    { time: "11:30", label: "1117 버스 탑승" },
-    { time: "12:28", label: "한국외대 글로벌캠퍼스" },
-  ],
-};
+function toISOArrivalTime(timeStr) {
+  const today = new Date();
+  const [h, m] = timeStr.split(":").map(Number);
+  today.setHours(h, m, 0, 0);
+  return today.toISOString();
+}
 
-const status = {
-  recommendTime: "11:00",
-  expectedArrival: "12:28",
-  currentTime: "10:48",
-};
+function buildRoutineTimeline(activeRoutines, prepStartTime) {
+  let cursor = prepStartTime;
+  return activeRoutines.map((r) => {
+    const time = cursor;
+    cursor = addMinutes(cursor, r.total_minutes);
+    return { id: r.id, time, label: r.name };
+  });
+}
 
+function buildRouteTimeline(subPaths, departureTime) {
+  let cursor = departureTime;
+  return subPaths.map((path) => {
+    const time = cursor;
+    cursor = addMinutes(cursor, path.section_time);
+    return { id: path.start_id ?? path.start_name, time, label: path.start_name };
+  });
+}
+
+// 검색 결과
 function SectionHeader({ label, duration }) {
   return (
     <div className="flex items-center gap-3 mb-4">
@@ -66,17 +109,177 @@ function TimelineItem({ time, label, isLast }) {
   );
 }
 
+function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, toggleChecklistItem, navigate }) {
+  const routineTimeline = buildRoutineTimeline(activeRoutines, routeResult.prep_start_time);
+  const routeTimeline = buildRouteTimeline(routeResult.sub_paths, routeResult.recommended_departure_time);
+  const routeMinutes = routeResult.total_minutes - routeResult.routine_minutes;
+
+  return (
+    <div className="grid grid-cols-[1fr_auto] gap-4">
+      {/* 타임라인 */}
+      <div>
+        <h2 className="title-h4 text-blue-900 mb-3">타임라인</h2>
+        <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
+          <SectionHeader label="준비 루틴" duration={`${routeResult.routine_minutes}분`} />
+          <div className="flex flex-col mb-6 pl-1">
+            {routineTimeline.map(({ id, time, label }, i) => (
+              <TimelineItem
+                key={id}
+                time={time}
+                label={label}
+                isLast={i === routineTimeline.length - 1}
+              />
+            ))}
+          </div>
+          <SectionHeader label="경로 상세" duration={`${routeMinutes}분`} />
+          <div className="flex flex-col pl-1">
+            {routeTimeline.map(({ id, time, label }, i) => (
+              <TimelineItem
+                key={`route-${id}-${i}`}
+                time={time}
+                label={label}
+                isLast={i === routeTimeline.length - 1}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 우측 패널 */}
+      <div className="flex flex-col gap-4 w-72">
+        {/* 체크 리스트 */}
+        <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
+          <div className="flex flex-col gap-3">
+            {allChecklistItems.map(({ id, title, checked, _type }) => (
+              <div key={id} className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleChecklistItem(_type, id)}
+                  className="w-5 h-5 accent-blue-700 shrink-0"
+                />
+                <span className="body-md text-blue-900">{title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 준비 상태 */}
+        <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
+          <div className="divide-y divide-gray-200">
+            {[
+              { label: "준비 시작 시각", value: routeResult.prep_start_time },
+              { label: "권장 출발 시각", value: routeResult.recommended_departure_time },
+              { label: "예정 도착 시각", value: routeResult.arrival_time },
+              { label: "여유 시간", value: `${routeResult.slack_minutes}분` },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+              >
+                <span className="body-md text-blue-900">{label}</span>
+                <span className="body-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-lg">
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4">
+            <Button text="시작" onClick={() => navigate("/route/active")} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RouteSearch() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [departure, setDeparture] = useState("");
   const [destination, setDestination] = useState("");
   const [arrivalTime, setArrivalTime] = useState("");
-  const [transport, setTransport] = useState("");
+  const [transport, setTransport] = useState(null);
+
+  const [routines, setRoutines] = useState([]);
+  const [checklists, setChecklists] = useState({ todo: [], must_do: [] });
+  const [routeResult, setRouteResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (MOCK_MODE) {
+          setRoutines(MOCK_ROUTINES);
+          setChecklists(MOCK_CHECKLISTS);
+        } else {
+          const [routinesData, checklistsData] = await Promise.all([
+            getRoutines(),
+            getChecklists(),
+          ]);
+          setRoutines(routinesData);
+          setChecklists(checklistsData);
+        }
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  const handleSearch = async () => {
+    if (!departure || !destination || !arrivalTime || !transport) {
+      setError("모든 항목을 입력해주세요.");
+      return;
+    }
+    setIsSearching(true);
+    setError(null);
+    try {
+      let result;
+      if (MOCK_MODE) {
+        result = MOCK_ROUTE_SEARCH;
+      } else {
+        result = await searchRoute({
+          origin: departure,
+          destination,
+          arrival_time: toISOArrivalTime(arrivalTime),
+          transport_option: transport.value,
+        });
+      }
+      setRouteResult(result);
+      setStep(2);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const toggleChecklistItem = (type, id) => {
+    setChecklists((prev) => ({
+      ...prev,
+      [type]: prev[type].map((item) =>
+        item.id === id ? { ...item, checked: !item.checked } : item
+      ),
+    }));
+  };
+
+  const activeRoutines = routines.filter((r) => r.active);
+  const totalRoutineMinutes = activeRoutines.reduce((sum, r) => sum + r.total_minutes, 0);
+  const allChecklistItems = [
+    ...checklists.todo.map((item) => ({ ...item, _type: "todo" })),
+    ...checklists.must_do.map((item) => ({ ...item, _type: "must_do" })),
+  ];
 
   return (
     <div className="min-h-screen bg-white px-7 py-5">
-      <div className="max-w-[1152px] mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h1 className="title-h2 text-blue-900 mb-2">길찾기</h1>
         <p className="body-sm text-gray-600 mb-6">
           출발지와 도착지를 설정하고{" "}
@@ -84,7 +287,7 @@ export default function RouteSearch() {
         </p>
 
         {/* 검색 폼 */}
-        <div className="bg-gray-100 border border-gray-200 rounded-xl p-5 mb-7 flex items-center gap-3">
+        <div className="bg-gray-100 border border-gray-200 rounded-xl p-5 mb-4 flex items-center gap-3">
           <div className="flex flex-col gap-1 flex-1 min-w-0">
             <label className="body-sm text-gray-600">출발지</label>
             <Input
@@ -120,36 +323,45 @@ export default function RouteSearch() {
             <Dropdown
               options={transportOptions}
               placeholder="옵션을 선택하세요"
-              value={transport}
-              onChange={(option) => setTransport(option.value)}
+              value={transport?.label ?? ""}
+              onChange={(option) => setTransport(option)}
               width="w-full"
             />
           </div>
           <Button
-            text={<AiOutlineSearch size={36} />}
-            onClick={() => setStep(2)}
+            text={<AiOutlineSearch size={24} />}
+            onClick={isSearching ? undefined : handleSearch}
+            bgColor={isSearching ? "var(--color-gray-400)" : "var(--color-blue-900)"}
+            textColor={isSearching ? "var(--color-gray-100)" : "var(--color-blue-100)"}
             className="p-3 shrink-0"
           />
         </div>
 
-        {/* step 1 */}
-        {step === 1 && (
+        {/* 에러 메시지 */}
+        {error && <p className="body-sm text-red-500 mb-4">{error}</p>}
+
+        {/* 콘텐츠 영역 */}
+        {loading ? (
+          <div className="flex items-center justify-center h-32 body-md text-gray-500">
+            불러오는 중...
+          </div>
+        ) : step === 1 ? (
           <div className="grid grid-cols-3 gap-4">
             {/* 커스텀 루틴 */}
             <div>
               <h2 className="title-h4 text-blue-900 mb-3">커스텀 루틴</h2>
               <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
                 <div className="flex flex-col gap-3">
-                  {routines.map(({ id, label, time }) => (
+                  {activeRoutines.map(({ id, name, total_minutes }, i) => (
                     <div key={id} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="w-8 h-8 bg-blue-900 text-blue-100 body-xs rounded-lg flex items-center justify-center font-semibold shrink-0">
-                          {id}
+                          {String(i + 1).padStart(2, "0")}
                         </span>
-                        <span className="body-md text-blue-900">{label}</span>
+                        <span className="body-md text-blue-900">{name}</span>
                       </div>
                       <span className="body-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-lg">
-                        {time}
+                        {total_minutes}분
                       </span>
                     </div>
                   ))}
@@ -162,14 +374,15 @@ export default function RouteSearch() {
               <h2 className="title-h4 text-blue-900 mb-3">체크 리스트</h2>
               <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
                 <div className="flex flex-col gap-3">
-                  {checklist.map(({ id, label, checked }) => (
+                  {allChecklistItems.map(({ id, title, checked, _type }) => (
                     <div key={id} className="flex items-center gap-3">
                       <input
                         type="checkbox"
-                        defaultChecked={checked}
+                        checked={checked}
+                        onChange={() => toggleChecklistItem(_type, id)}
                         className="w-5 h-5 accent-blue-700 shrink-0"
                       />
-                      <span className="body-md text-blue-900">{label}</span>
+                      <span className="body-md text-blue-900">{title}</span>
                     </div>
                   ))}
                 </div>
@@ -182,8 +395,8 @@ export default function RouteSearch() {
               <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
                 <div className="divide-y divide-gray-200">
                   {[
-                    { label: "준비 시간", value: "28분" },
-                    { label: "현재 시각", value: "17:35" },
+                    { label: "준비 시간", value: `${totalRoutineMinutes}분` },
+                    { label: "현재 시각", value: getCurrentTime() },
                   ].map(({ label, value }) => (
                     <div
                       key={label}
@@ -199,84 +412,15 @@ export default function RouteSearch() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* step 2 */}
-        {step === 2 && (
-          <div className="grid grid-cols-[1fr_auto] gap-4">
-            {/* 타임라인 */}
-            <div>
-              <h2 className="title-h4 text-blue-900 mb-3">타임라인</h2>
-              <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
-                <SectionHeader label="준비 루틴" duration="28분" />
-                <div className="flex flex-col mb-6 pl-1">
-                  {timeline.routine.map(({ time, label }, i) => (
-                    <TimelineItem
-                      key={i}
-                      time={time}
-                      label={label}
-                      isLast={i === timeline.routine.length - 1}
-                    />
-                  ))}
-                </div>
-                <SectionHeader label="경로 상세" duration="60분" />
-                <div className="flex flex-col pl-1">
-                  {timeline.route.map(({ time, label }, i) => (
-                    <TimelineItem
-                      key={i}
-                      time={time}
-                      label={label}
-                      isLast={i === timeline.route.length - 1}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* 우측 패널 */}
-            <div className="flex flex-col gap-4 w-72">
-              {/* 체크 리스트 */}
-              <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
-                <div className="flex flex-col gap-3">
-                  {checklist.map(({ id, label, checked }) => (
-                    <div key={id} className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        defaultChecked={checked}
-                        className="w-5 h-5 accent-blue-700 shrink-0"
-                      />
-                      <span className="body-md text-blue-900">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 준비 상태 */}
-              <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
-                <div className="divide-y divide-gray-200">
-                  {[
-                    { label: "권장 준비 시각", value: status.recommendTime },
-                    { label: "예정 도착 시각", value: status.expectedArrival },
-                    { label: "현재 시각", value: status.currentTime },
-                  ].map(({ label, value }) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-                    >
-                      <span className="body-md text-blue-900">{label}</span>
-                      <span className="body-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-lg">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <Button text="시작" onClick={() => navigate("/route/active")} />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        ) : routeResult ? (
+          <RouteResultPanel
+            routeResult={routeResult}
+            activeRoutines={activeRoutines}
+            allChecklistItems={allChecklistItems}
+            toggleChecklistItem={toggleChecklistItem}
+            navigate={navigate}
+          />
+        ) : null}
       </div>
     </div>
   );
