@@ -2,6 +2,7 @@ import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import Button from "./Button";
 import icon from "../assets/icon.svg";
+import { logout } from "../api/api";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -13,8 +14,14 @@ export default function Navbar() {
     { label: "My Page", path: "/mypage" },
   ];
 
-  const handleLogout = () => {
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      navigate("/");
+    }
   };
 
   return (

@@ -26,8 +26,7 @@ client.interceptors.response.use(
           { refresh_token: localStorage.getItem("refresh_token") },
           { headers: { "Content-Type": "application/json" } }
         );
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("refresh_token", data.refresh_token);
+        saveTokens(data.access_token, data.refresh_token);
         original.headers.Authorization = `Bearer ${data.access_token}`;
         return client(original);
       } catch {
