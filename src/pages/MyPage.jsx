@@ -2,13 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import Button from "../components/Button";
 import Dropdown from "../components/Dropdown";
 import { BsFillPersonFill } from "react-icons/bs";
-import { getMe, updateMe, deleteMe } from "../api/api";
-
-const routeHistory = [
-  { id: 1, date: "26.05.03", route: "한국외대 글로벌 캠퍼스 백년관 → 모란역 6번 출구" },
-  { id: 2, date: "26.05.02", route: "수서역 1번 출구 → 성수역 3번 출구" },
-  { id: 3, date: "26.05.01", route: "오리역 4번 출구 → 삼성역 9번 출구" },
-];
+import { getMe, updateMe, deleteMe, getRouteHistory } from "../api/api";
 
 const timeOptions = [
   { index: 0, value: "5" },
@@ -174,6 +168,7 @@ export default function MyPage() {
   const [showAlarmSetting, setShowAlarmSetting] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [userInfo, setUserInfo] = useState({ name: "", email: "", phone: "" });
+  const [routeHistory, setRouteHistory] = useState([]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -185,7 +180,17 @@ export default function MyPage() {
         console.error("사용자 정보 조회 실패:", err);
       }
     };
+
+    const fetchRoutes = async () => {
+      try {
+        const res = await getRouteHistory();
+        setRouteHistory(res.data);
+      } catch (err) {
+        console.error("경로 기록 조회 실패:", err)
+      }
+    };
     fetchUser();
+    fetchRoutes();
   }, []);
 
   const handleDeleteAccount = async () => {
