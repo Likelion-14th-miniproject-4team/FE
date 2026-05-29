@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlinePushpin, AiFillPushpin } from "react-icons/ai";
 import { BsFillPlayFill } from "react-icons/bs";
 import Input from "../components/Input";
 import Button from "../components/Button";
-
+import { getChecklists, createChecklist, deleteChecklist, updateChecklist } from "../api/api"
 
 const initialTodos = [
   { id: 1, label: "", checked: false },
@@ -64,25 +64,54 @@ export default function CheckList() {
   const [mustdos, setMustdos] = useState(initialMustdos);
   const [newItem, setNewItem] = useState("");
 
-  const addItem = () => {
+  // 페이지 로드 시 데이터 불러오기
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await getChecklists();
+        setTodos(res.data);
+      } catch (err) {
+        console.error("조회 실패:", err);
+      }
+    }
+  })
+
+  const addItem = async () => {
     const label = newItem.trim();
-    if (!label) return;  // list → label
-    setTodos((prev) => [...prev, { id: nextId++, label, checked: false }]);
-    setNewItem("");
-  };
+    if (!label) return;
+    try {
+      const res = await createChecklist({ label, checked: false });
+      setTodos((prev) => [...prev, res.data]);
+      setNewItem("");
+    } catch (err) {
+      console.error("추가 실패:", err);
+    }
+  }
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") addItem();
   };
 
-  const toggleTodo = (id) =>
-    setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
-
+  const toggleTodo = async (id) => {
+    const item = todos.find((i) => i.id === id);
+    try {
+      await updateChecklist(id, { checked: !item.checked });
+      setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
+    } catch (err) {
+      console.error("수정 실패:", err);
+    }
+  };
   const toggleMust = (id) =>
     setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
 
-  const updateTodoLabel = (id, val) =>
-    setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, label: val } : i)));
+  const updateTodoLabel = async (id, val) => {
+    try {
+      await updateChecklist(id, { label: val });
+      setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, label: val } : i)));
+    } catch (err) {
+      console.error("수정 실패:", err);
+    }
+  };
 
   const updateMustLabel = (id, val) =>
     setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, label: val } : i)));
@@ -94,10 +123,20 @@ export default function CheckList() {
     setMustdos((prev) => [...prev, { id: item.id, label: item.label, checked: item.checked }]);
   };
 
-  const deleteSelected = () => {
-    setTodos((prev) => prev.filter((i) => !i.checked));
-    setMustdos((prev) => prev.filter((i) => !i.checked));
-  };
+  const deleteSelected = async () => {
+    try {
+      const checkedTodos = todos.filter((i) => i.checked);
+      const checkedMusts = mustdos.filter((i) => i.checked);
+      await Promise.all([
+        ...checkedTodos.map((i) => deleteChecklist(i.id)),
+        ...checkedMusts.map((i) => deleteChecklist(i.id)),
+      ]);
+      setTodos((prev) => prev.filter((i) => !i.checked));
+      setMustdos((prev) => prev.filter((i) => !i.checked));
+    } catch (err) {
+      console.error("삭제 실패:", err);
+    }
+  }
 
   const saveList = () => {
     alert("저장되었습니다!");
