@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AiOutlinePushpin, AiFillPushpin } from "react-icons/ai";
 import { BsFillPlayFill } from "react-icons/bs";
 import Input from "../components/Input";
@@ -6,16 +7,14 @@ import Button from "../components/Button";
 import { getChecklists, createChecklist, deleteChecklist, updateChecklist } from "../api/api"
 
 const initialTodos = [
-  { id: 1, label: "", checked: false },
-  { id: 2, label: "", checked: false },
-  { id: 3, label: "", checked: false },
+  { id: 1, title: "", checked: false },
+  { id: 2, title: "", checked: false },
+  { id: 3, title: "", checked: false },
 ];
 
 const initialMustdos = [
-  { id: 4, label: "", checked: false },
+  { id: 4, title: "", checked: false },
 ];
-
-let nextId = 5;
 
 function PinIcon({ active }) {
   return active ? (
@@ -40,7 +39,7 @@ function CheckItem({ item, onToggle, onLabelChange, onDelete, onPin, showPin = t
       />
       <input
         type="text"
-        value={item.label}
+        value={item.title}
         placeholder="내용을 입력하세요..."
         onChange={(e) => onLabelChange(item.id, e.target.value)}
         className={`flex-1 body-md text-blue-900 bg-transparent outline-none border-0 border-b border-gray-300 pb-0.5 placeholder-slate-400 ${item.checked ? "line-through text-slate-400" : ""}`}
@@ -60,6 +59,7 @@ function CheckItem({ item, onToggle, onLabelChange, onDelete, onPin, showPin = t
 }
 
 export default function CheckList() {
+  const navigate = useNavigate();
   const [todos, setTodos] = useState(initialTodos);
   const [mustdos, setMustdos] = useState(initialMustdos);
   const [newItem, setNewItem] = useState("");
@@ -69,19 +69,23 @@ export default function CheckList() {
     const fetchData = async () => {
       try {
         const res = await getChecklists();
-        setTodos(res.data);
+        const todos = res.filter((item) => !item.must_do);
+        const mustdos = res.filter((item) => item.must_do);
+        setTodos(todos);
+        setMustdos(mustdos);
       } catch (err) {
         console.error("조회 실패:", err);
       }
-    }
-  })
+    };
+    fetchData();
+  }, []);
 
   const addItem = async () => {
-    const label = newItem.trim();
-    if (!label) return;
+    const title = newItem.trim();
+    if (!title) return;
     try {
-      const res = await createChecklist({ label, checked: false });
-      setTodos((prev) => [...prev, res.data]);
+      const res = await createChecklist({ title, checked: false });
+      setTodos((prev) => [...prev, res]);
       setNewItem("");
     } catch (err) {
       console.error("추가 실패:", err);
@@ -106,21 +110,27 @@ export default function CheckList() {
 
   const updateTodoLabel = async (id, val) => {
     try {
-      await updateChecklist(id, { label: val });
-      setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, label: val } : i)));
+      await updateChecklist(id, { title: val });
+      setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
     } catch (err) {
       console.error("수정 실패:", err);
     }
   };
 
   const updateMustLabel = (id, val) =>
-    setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, label: val } : i)));
+    setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
 
-  const pinItem = (id) => {
-    const item = todos.find((i) => i.id === id);
-    if (!item) return;
-    setTodos((prev) => prev.filter((i) => i.id !== id));
-    setMustdos((prev) => [...prev, { id: item.id, label: item.label, checked: item.checked }]);
+  const pinItem = async (id) => {
+    try {
+      await updateChecklist(id, { fixed: true });
+      const res =await getChecklists();
+      const todos = res.filter((item) => !item.must_do);
+      const mustdos = res.filter((item) => item.must_do);
+      setTodos(todos);
+      setMustdos(mustdos);
+    } catch (err) {
+      console.error("고정 실패:", err);
+    }
   };
 
   const deleteSelected = async () => {
@@ -138,12 +148,28 @@ export default function CheckList() {
     }
   }
 
-  const saveList = () => {
-    alert("저장되었습니다!");
+  const deleteTodo = async (id) => {
+    try {
+      await deleteChecklist(id);
+      setTodos((prev) => prev.filter((i) => i.id !== id));
+    } catch (err) {
+      console.error("삭제 실패:", err);
+    }
   };
 
-  const deleteTodo = (id) => setTodos((prev) => prev.filter((i) => i.id !== id));
-  const deleteMust = (id) => setMustdos((prev) => prev.filter((i) => i.id !== id));
+  const deleteMust = async (id) => {
+    try {
+      await deleteChecklist(id);
+      setMustdos((prev) => prev.filter((i) => i.id !== id));
+    } catch (err) {
+      console.error("삭제 실패:", err);
+    }
+  };
+
+  const goToRoute = () => {
+    navigate("/route")
+  };
+  
 
   return (
     <div className="min-h-screen bg-white">
@@ -232,11 +258,11 @@ export default function CheckList() {
             onClick={deleteSelected}
           />
           <Button
-            text="저장하기"
-            onClick={saveList}
+            text="완료하기"
+            onClick={goToRoute}
           />
         </div>
       </div>
     </div>
   );
-}
+};
