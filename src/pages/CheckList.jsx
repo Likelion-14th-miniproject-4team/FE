@@ -26,7 +26,7 @@ function PinIcon({ active }) {
 }
 
 function PlayIcon() {
-  return <BsFillPlayFill size={40} className="text-gray-600" />;
+  return <BsFillPlayFill size={40} className="text-blue-600" />;
 }
 
 function CheckItem({ item, onToggle, onLabelChange, onDelete, onPin, showPin = true }) {
@@ -148,13 +148,13 @@ export default function CheckList() {
   return (
     <div className="min-h-screen bg-white">
       {/* 제목 박스 */}
-      <div className="bg-blue-100 flex flex-col items-center py-10">
-        <div className="w-full max-w-[1200px] px-12">
-          <p className="body-sm text-blue-900 mb-3">CheckList</p>
-          <h1 className="title-h1 text-blue-700 mb-3">
+      <div className="bg-blue-100 px-16 py-10">
+        <div className="max-w-xl mx-auto">
+          <p className="body-sm text-blue-500 mb-1">CheckList</p>
+          <h1 className="title-h2 text-blue-900 leading-tight mb-3">
             체크<br />리스트
           </h1>
-          <p className="body-sm text-blue-900 mb-3">
+          <p className="body-sm text-gray-500">
             오늘 해야할 일들을 정리해보세요.<br />
             반드시 해야하거나 우선적으로 해야할 일들은 핀버튼을 통해 고정시켜보세요.
           </p>
