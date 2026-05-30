@@ -23,6 +23,7 @@ const ICON_COLOR_MAP = {
 
 // ── 유틸 ──────────────────────────────────────────────
 function toMinutes(timeStr) {
+  if (!timeStr || timeStr === "--:--") return 0;
   const [h, m] = timeStr.split(":").map(Number);
   return h * 60 + m;
 }
@@ -37,7 +38,7 @@ function toMMSS(seconds) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 function formatTime(isoOrHHmm) {
-  if (!isoOrHHmm) return "";
+  if (!isoOrHHmm) return "--:--";
   if (isoOrHHmm.includes("T")) return isoOrHHmm.split("T")[1].slice(0, 5);
   return isoOrHHmm;
 }
@@ -58,22 +59,21 @@ export default function RouteActive() {
   const location = useLocation();
 
   // RouteSearch에서 넘어온 데이터
-  const {
-    routineId,
-    searchId,
-    departure = "출발지",
-    destination = "도착지",
-    arrivalTarget = "--:--",
-    plannedDepartureTime = "--:--",
-    routineStartTime = "--:--",
-    subPaths = [],
-  } = location.state ?? {};
+  const raw = location.state ?? {};
+  const routineId = raw.routineId;
+  const searchId = raw.searchId;
+  const departure = raw.departure ?? "출발지";
+  const destination = raw.destination ?? "도착지";
+  const arrivalTarget = formatTime(raw.arrivalTarget ?? "--:--");
+  const plannedDepartureTime = formatTime(raw.plannedDepartureTime ?? "--:--");
+  const routineStartTime = formatTime(raw.routineStartTime ?? "--:--");
+  const subPaths = raw.subPaths ?? [];
 
   // ── 세션 상태 ──
   const [sessionId, setSessionId] = useState(null);
   const [steps, setSteps] = useState([]);
   const [activeTimer, setActiveTimer] = useState(0);
-  const [totalSpareMins, setTotalSpareMins] = useState(0);
+  const [slackMinutes, setSlackMinutes] = useState(0); // 백엔드에서 받은 slack
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
 
@@ -83,15 +83,26 @@ export default function RouteActive() {
       try {
         const res = await startCountdown({ routine_id: routineId, search_id: searchId });
         setSessionId(res.session_id);
-        setTotalSpareMins(res.slack_minutes);
+        setSlackMinutes(res.slack_minutes);
 
-        // current_item, next_item으로 steps 초기화
         const initialSteps = [];
         if (res.current_item) {
-          initialSteps.push({ ...res.current_item, status: "active", actualDuration: null, savedMinutes: 0, plannedDuration: res.current_item.duration_min });
+          initialSteps.push({
+            ...res.current_item,
+            status: "active",
+            actualDuration: null,
+            savedMinutes: 0,
+            plannedDuration: res.current_item.duration_min,
+          });
         }
         if (res.next_item) {
-          initialSteps.push({ ...res.next_item, status: "pending", actualDuration: null, savedMinutes: 0, plannedDuration: res.next_item.duration_min });
+          initialSteps.push({
+            ...res.next_item,
+            status: "pending",
+            actualDuration: null,
+            savedMinutes: 0,
+            plannedDuration: res.next_item.duration_min,
+          });
         }
         setSteps(initialSteps);
         if (res.current_item) setActiveTimer(res.current_item.duration_min * 60);
@@ -101,6 +112,7 @@ export default function RouteActive() {
         setLoading(false);
       }
     };
+
     if (routineId && searchId) {
       initCountdown();
     } else {
@@ -123,8 +135,12 @@ export default function RouteActive() {
   );
   const doneCount = steps.filter((s) => s.status === "done").length;
 
+  // slack 기반으로 지각 여부 판단
+  const isLate = slackMinutes < 0;
+  const lateMinutes = Math.abs(slackMinutes);
+
   const calcStepStartTimes = () => {
-    let t = toMinutes(routineStartTime || "00:00");
+    let t = toMinutes(routineStartTime);
     return steps.map((step) => {
       const start = t;
       t += step.status === "done" ? step.actualDuration : step.plannedDuration;
@@ -134,7 +150,7 @@ export default function RouteActive() {
   const stepStartTimes = calcStepStartTimes();
 
   const calcActualDepartureTime = () => {
-    let t = toMinutes(routineStartTime || "00:00");
+    let t = toMinutes(routineStartTime);
     steps.forEach((step) => {
       t += step.status === "done" ? step.actualDuration : step.plannedDuration;
     });
@@ -151,7 +167,8 @@ export default function RouteActive() {
 
     try {
       const res = await completeCountdownItem(sessionId, { item_id: id, action: "complete" });
-      setTotalSpareMins(res.slack_minutes);
+      // 백엔드에서 받은 slack으로 업데이트
+      setSlackMinutes(res.slack_minutes);
 
       setSteps((prev) => {
         const updated = prev.map((s, i) => {
@@ -159,9 +176,15 @@ export default function RouteActive() {
           if (i === activeIndex + 1) return { ...s, status: "active" };
           return s;
         });
-        // 다음 항목이 없으면 next_item 추가
+        // 다음 항목 추가
         if (res.next_item && !updated.find((s) => s.id === res.next_item.id)) {
-          updated.push({ ...res.next_item, status: "pending", actualDuration: null, savedMinutes: 0, plannedDuration: res.next_item.duration_min });
+          updated.push({
+            ...res.next_item,
+            status: "pending",
+            actualDuration: null,
+            savedMinutes: 0,
+            plannedDuration: res.next_item.duration_min,
+          });
         }
         return updated;
       });
@@ -184,7 +207,7 @@ export default function RouteActive() {
     }
   };
 
-  // ── 경로 상세 빌드 ──
+  // ── 경로 상세 빌드 (lane_colors 적용) ──
   const buildRouteSteps = () => {
     if (!subPaths || subPaths.length === 0) return [];
     const typeMap = { 1: "subway", 2: "bus", 3: "walk" };
@@ -194,14 +217,22 @@ export default function RouteActive() {
       const [h, m] = cursor.split(":").map(Number);
       const total = h * 60 + m + path.section_time;
       cursor = toTimeStr(total);
-      const type = i === 0 ? "departure" : i === subPaths.length - 1 ? "arrival" : typeMap[path.traffic_type] ?? "walk";
+      const type = i === 0 ? "departure"
+        : i === subPaths.length - 1 ? "arrival"
+        : typeMap[path.traffic_type] ?? "walk";
+
+      // lane_colors에서 첫 번째 색상 사용
+      const laneColor = path.lane_colors?.[0] ?? null;
+      const laneName = path.lane_names?.[0] ?? null;
+
       return {
         id: i,
         type,
         time,
         label: path.start_name ?? path.end_name ?? "이동",
-        sub: path.lane_names?.length > 0 ? path.lane_names.join(", ") : path.distance ? `도보 ${path.distance}m` : null,
+        sub: laneName ?? (path.distance ? `도보 ${path.distance}m` : null),
         detail: path.section_time ? `${path.section_time}분` : null,
+        laneColor,
       };
     });
   };
@@ -233,14 +264,14 @@ export default function RouteActive() {
           </div>
           <div className="flex-1 text-right">
             <p className="body-xs text-blue-900 mb-0.5">도착 예정 시간</p>
-            <p className="body-xl font-bold text-blue-900">{formatTime(arrivalTarget)}</p>
+            <p className="body-xl font-bold text-blue-900">{arrivalTarget}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-4 pb-4 border-b border-blue-600 mb-3">
           <div>
             <p className="body-xs text-blue-900 mb-0.5">출발 시각</p>
-            <p className="title-h3 text-blue-900 font-bold">{formatTime(plannedDepartureTime)}</p>
+            <p className="title-h3 text-blue-900 font-bold">{plannedDepartureTime}</p>
           </div>
           <span className="title-h4 text-blue-600 mt-3">/</span>
           <div>
@@ -249,12 +280,22 @@ export default function RouteActive() {
               {toMMSS(remainSecs)}
             </p>
           </div>
-          {totalSpareMins > 0 && (
+          {slackMinutes > 0 && (
             <div className="ml-auto">
-              <Button text={`+${totalSpareMins} 분 여유`} onClick={() => {}} className="body-xs px-4 py-2 rounded-lg" />
+              <Button text={`+${slackMinutes} 분 여유`} onClick={() => {}} className="body-xs px-4 py-2 rounded-lg" />
             </div>
           )}
         </div>
+
+        {/* 지각 경고 - slack이 음수일 때 */}
+        {isLate && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mb-4">
+            <span className="text-red-500 text-sm">⚠️</span>
+            <p className="body-xs text-red-500">
+              {lateMinutes}분 지각 상태예요. 서둘러 준비해요!
+            </p>
+          </div>
+        )}
 
         <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 280px)" }}>
 
@@ -317,7 +358,8 @@ export default function RouteActive() {
             </div>
           </div>
 
-          {totalSpareMins > 0 && (
+          {/* 여유 시간 프레임 - slack이 양수일 때만 */}
+          {slackMinutes > 0 && (
             <div className="flex items-start gap-3 mb-4">
               <span className="body-xs text-blue-1000 w-9 shrink-0 pt-2.5 text-right">
                 {calcActualDepartureTime()}
@@ -330,9 +372,9 @@ export default function RouteActive() {
               <div className="flex-1 rounded-lg bg-blue-400 border border-blue-800 px-3 py-2 mb-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="body-sm text-blue-1000">여유 {totalSpareMins}분 확보</p>
+                    <p className="body-sm text-blue-1000">여유 {slackMinutes}분 확보</p>
                     <p className="body-xs text-blue-1000 mt-0.5">
-                      계획 출발 {formatTime(plannedDepartureTime)}&nbsp;&nbsp;지금 출발도 가능해요
+                      계획 출발 {plannedDepartureTime}&nbsp;&nbsp;지금 출발도 가능해요
                     </p>
                   </div>
                   <Button text="지금 출발 →" onClick={handleDepart} className="body-xs px-3 py-1.5 rounded-lg ml-3" />
@@ -351,17 +393,27 @@ export default function RouteActive() {
                   {step.time}
                 </span>
                 <div className="flex flex-col items-center">
-                  <div className="mt-2 w-5 h-5 rounded-lg border border-gray-200 flex items-center justify-center shrink-0">
+                  {/* lane_color로 아이콘 배경색 적용 */}
+                  <div
+                    className="mt-2 w-5 h-5 rounded-lg border border-gray-200 flex items-center justify-center shrink-0"
+                    style={step.laneColor ? { backgroundColor: step.laneColor + "33" } : {}}
+                  >
                     <RouteIcon type={step.type} />
                   </div>
                   {index < routeSteps.length - 1 && (
                     <span className="w-px bg-gray-200 flex-1 min-h-8" />
                   )}
                 </div>
-                <div className={`flex-1 rounded-lg px-3 py-2 mb-2 border ${COLOR_MAP[step.type]}`}>
+                <div
+                  className={`flex-1 rounded-lg px-3 py-2 mb-2 border ${!step.laneColor ? COLOR_MAP[step.type] : "border-gray-200"}`}
+                  style={step.laneColor ? { backgroundColor: step.laneColor + "22" } : {}}
+                >
                   <p className="body-sm text-blue-1000">{step.label}</p>
                   {step.sub && step.type === "bus" && (
-                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full body-xs text-white bg-red-700">
+                    <span
+                      className="inline-block mt-1 px-2 py-0.5 rounded-full body-xs text-white"
+                      style={{ backgroundColor: step.laneColor ?? "#dc2626" }}
+                    >
                       {step.sub}
                     </span>
                   )}
