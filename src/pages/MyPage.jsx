@@ -15,21 +15,30 @@ function DefaultProfileIcon() {
   return <BsFillPersonFill size={130} className="text-gray-600" />;
 }
 
-function RouteCard({ date, route }) {
+function RouteCard({ searched_at, origin, destination }) {
+  const date = new Date(searched_at);
+  const formatted = `${String(date.getFullYear()).slice(2)}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
   return (
     <div className="flex items-center bg-beige-300 rounded-lg px-6 py-4">
       <span className="title-h4 text-gray-1000 w-28 shrink-0">
-        {date}
+        {formatted}
       </span>
       <span className="body-lg text-gray-1000 flex-1">
-        {route}
+        {origin} → {destination}
       </span>
     </div>
   );
 }
 
-function UserInfoModal({ isOpen, onClose, profileImage, onProfileChange, userInfo }) {
+function UserInfoModal({ isOpen, onClose, profile_image, onProfileChange, userInfo, onUserInfoChange }) {
   const fileInputRef = useRef(null);
+  const [nickname, setNickname] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setNickname(userInfo.name || "");
+    }
+  }, [isOpen, userInfo.name]);
 
   if (!isOpen) return null;
 
@@ -39,7 +48,7 @@ function UserInfoModal({ isOpen, onClose, profileImage, onProfileChange, userInf
       const reader = new FileReader();
       reader.onloadend = async () => {
         try {
-          await updateMe({ profileImage: reader.result });
+          await updateMe({ profile_image: reader.result });
           onProfileChange(reader.result);
         } catch (err) {
           console.error("프로필 변경 실패:", err);
@@ -48,6 +57,16 @@ function UserInfoModal({ isOpen, onClose, profileImage, onProfileChange, userInf
       reader.readAsDataURL(file);
     }
   };
+
+  const handleSave = async () => {
+    try {
+      await updateMe({ name: nickname });
+      onUserInfoChange({ ...userInfo, name: nickname });
+      onClose();
+    } catch (err) {
+      console.error("닉네임 변경 실패:", err);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -59,14 +78,14 @@ function UserInfoModal({ isOpen, onClose, profileImage, onProfileChange, userInf
             className="bg-blue-100 w-40 h-40 rounded-full flex items-center justify-center overflow-hidden mb-3 cursor-pointer"
             onClick={() => fileInputRef.current.click()}
           >
-            {profileImage ? (
-              <img src={profileImage} alt="프로필" className="w-full h-full object-cover" />
+            {profile_image ? (
+              <img src={profile_image} alt="프로필" className="w-full h-full object-cover" />
             ) : (
               <DefaultProfileIcon size={80} />
             )}
           </div>
           <button
-            className="body-sm text-white hover:underline"
+            className="body-sm text-blue-100 hover:underline"
             onClick={() => fileInputRef.current.click()}
           >
             프로필 사진 변경
@@ -80,14 +99,15 @@ function UserInfoModal({ isOpen, onClose, profileImage, onProfileChange, userInf
           />
         </div>
 
-        {/* 사용자 정보 */}
-        <div className="flex flex-col gap-4 items-center">
-          <p className="body-xl text-gray-1000">
-            mail: {userInfo.email}
-          </p>
-          <p className="body-xl text-gray-1000">
-            phone: {userInfo.phone}
-          </p>
+        {/* 닉네임 수정 */}
+        <div className="flex flex-col gap-2 mb-6">
+          <p className="body-sm text-blue-100">닉네임을 입력하세요</p>
+          <input
+            type="text"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg body-md text-blue-900 bg-blue-100 outline-none border border-blue-400 focus:border-blue-500"
+          />
         </div>
 
         {/* 하단 버튼 */}
@@ -101,7 +121,7 @@ function UserInfoModal({ isOpen, onClose, profileImage, onProfileChange, userInf
           />
           <Button
             text="완료"
-            onClick={onClose}
+            onClick={handleSave}
             bgColor="var(--color-blue-500)"
             textColor="var(--color-blue-100)"
             className="h-12 px-8 py-3 body-md"
@@ -175,8 +195,8 @@ export default function MyPage() {
     const fetchUser = async () => {
       try {
         const res = await getMe();
-        setUserInfo(res.data);
-        setProfileImage(res.data.profileImage);
+        setUserInfo(res);
+        setProfileImage(res.profile_image);
       } catch (err) {
         console.error("사용자 정보 조회 실패:", err);
       }
@@ -185,7 +205,7 @@ export default function MyPage() {
     const fetchRoutes = async () => {
       try {
         const res = await getRouteHistory();
-        setRouteHistory(res.data);
+        setRouteHistory(res);
       } catch (err) {
         console.error("경로 기록 조회 실패:", err);
       }
@@ -243,8 +263,9 @@ export default function MyPage() {
               {routeHistory.map((item) => (
                 <RouteCard
                   key={item.id}
-                  date={item.date}
-                  route={item.route}
+                  searched_at={item.searched_at}
+                  origin={item.origin}
+                  destination={item.destination}
                 />
               ))}
             </div>
@@ -255,9 +276,10 @@ export default function MyPage() {
       <UserInfoModal
         isOpen={showUserInfo}
         onClose={() => setShowUserInfo(false)}
-        profileImage={profileImage}
+        profile_image={profileImage}
         onProfileChange={setProfileImage}
         userInfo={userInfo}
+        onUserInfoChange={setUserInfo}
       />
       <AlarmSettingModal
         isOpen={showAlarmSetting}
