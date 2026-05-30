@@ -118,7 +118,7 @@ export default function RouteActive() {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [routineId, searchId]);
 
   // ── 1초 타이머 ──
   useEffect(() => {
@@ -189,8 +189,7 @@ export default function RouteActive() {
         return updated;
       });
 
-      const nextStep = steps[activeIndex + 1];
-      if (nextStep) setActiveTimer(nextStep.plannedDuration * 60);
+      setActiveTimer(res.next_item ? res.next_item.duration_min * 60 : 0);
     } catch (err) {
       console.error("단계 완료 실패", err);
     }
@@ -199,7 +198,7 @@ export default function RouteActive() {
   // ── 지금 출발 ──
   const handleDepart = async () => {
     try {
-      await departCountdown(sessionId, {});
+      await departCountdown(sessionId);
       navigate("/route");
     } catch (err) {
       console.error("출발 처리 실패", err);
@@ -246,9 +245,18 @@ export default function RouteActive() {
     );
   }
 
+  if (!searchId) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <p className="body-md text-gray-500">경로 정보가 없어요. 다시 검색해주세요.</p>
+        <Button text="돌아가기" onClick={() => navigate("/route")} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white px-7 py-5">
-      <div className="max-w-[680px] mx-auto">
+      <div className="max-w-170 mx-auto">
 
         <p className="body-xs text-blue-900 mb-3">길찾기</p>
 
@@ -257,7 +265,7 @@ export default function RouteActive() {
             <p className="body-xs text-blue-900 mb-0.5">출발지</p>
             <p className="body-xl font-bold text-blue-900">{departure}</p>
           </div>
-          <span className="text-blue-600 text-sm flex-shrink-0">———→</span>
+          <span className="text-blue-600 text-sm shrink-0">———→</span>
           <div className="flex-1 text-center">
             <p className="body-xs text-blue-900 mb-0.5">도착지</p>
             <p className="body-xl font-bold text-blue-900">{destination}</p>
