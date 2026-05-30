@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import Button from "../components/Button";
 import Dropdown from "../components/Dropdown";
 import { BsFillPersonFill } from "react-icons/bs";
-import { getMe, updateMe, deleteMe, getRouteHistory } from "../api/api";
-
+import { getMe, updateMe, deleteMe, getRouteHistory, uploadProfileImage } from "../api/api";
 
 const timeOptions = [
   { index: 0, value: "5" },
@@ -42,25 +41,21 @@ function UserInfoModal({ isOpen, onClose, profile_image, onProfileChange, userIn
 
   if (!isOpen) return null;
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          await updateMe({ profile_image: reader.result });
-          onProfileChange(reader.result);
-        } catch (err) {
-          console.error("프로필 변경 실패:", err);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const res = await uploadProfileImage(file);
+        onProfileChange(res.profile_image_url);
+      } catch (err) {
+        console.error("프로필 변경 실패:", err);
+      }
     }
   };
 
   const handleSave = async () => {
     try {
-      await updateMe({ name: nickname });
+      await updateMe({ nickname });
       onUserInfoChange({ ...userInfo, name: nickname });
       onClose();
     } catch (err) {
@@ -71,7 +66,7 @@ function UserInfoModal({ isOpen, onClose, profile_image, onProfileChange, userIn
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="bg-blue-300 relative w-[400px] rounded-xl px-10 py-8">
+      <div className="bg-blue-300 relative w-100 rounded-xl px-10 py-8">
         {/* 프로필 이미지 */}
         <div className="flex flex-col items-center mb-8">
           <div
@@ -137,9 +132,13 @@ function AlarmSettingModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedTime) {
-      alert(`${selectedTime}분 전 알림이 설정되었습니다.`);
+      try {
+        await updateMe({ alert_offset_minutes: Number(selectedTime), alert_enabled: true });
+      } catch (err) {
+        console.error("알림 설정 실패:", err);
+      }
     }
     onClose();
   };
@@ -147,7 +146,7 @@ function AlarmSettingModal({ isOpen, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-blue-300 w-[400px] rounded-xl px-10 py-8 flex flex-col">
+      <div className="relative bg-blue-300 w-100 rounded-xl px-10 py-8 flex flex-col">
         {/* 드롭다운 + 라벨 */}
         <div className="flex items-center gap-4 mb-auto">
           <Dropdown
@@ -188,7 +187,7 @@ export default function MyPage() {
   const [showUserInfo, setShowUserInfo] = useState(false);
   const [showAlarmSetting, setShowAlarmSetting] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
-  const [userInfo, setUserInfo] = useState({ name: "", email: "", phone: "" });
+  const [userInfo, setUserInfo] = useState({ name: "", alert_offset_minutes: null });
   const [routeHistory, setRouteHistory] = useState([]);  
 
   useEffect(() => {
