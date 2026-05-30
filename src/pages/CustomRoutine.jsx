@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import Input from "../components/Input";
-import { getRoutines, createRoutine, updateRoutine, deleteRoutine, reorderRoutine } from "../api/api";
+import { getRoutines, getRoutine, createRoutine, updateRoutine, deleteRoutine, reorderRoutine } from "../api/api";
 
 // 루틴 이름 (고정 - 사용자당 루틴 1개 구조)
 const ROUTINE_NAME = "나의 준비 루틴";
@@ -31,10 +31,10 @@ export default function CustomRoutine() {
       try {
         const data = await getRoutines();
         if (data && data.length > 0) {
-          // 첫 번째 루틴 사용
-          setRoutineId(data[0].id);
-          // 상세 정보는 items에서 가져옴
-          setItems(data[0].items ?? []);
+          const firstId = data[0].id;
+          setRoutineId(firstId);
+          const detail = await getRoutine(firstId);
+          setItems(detail.items ?? []);
         }
       } catch (err) {
         console.error("루틴 불러오기 실패", err);
@@ -121,6 +121,7 @@ export default function CustomRoutine() {
     const from = dragIndex.current;
     if (from === null || from === index) { setDragOverIndex(null); return; }
 
+    const original = [...items];
     const updated = [...items];
     const [moved] = updated.splice(from, 1);
     updated.splice(index, 0, moved);
@@ -130,6 +131,7 @@ export default function CustomRoutine() {
       await reorderRoutine(moved.id, { sort_order: index });
     } catch (err) {
       console.error("순서 변경 실패", err);
+      setItems(original);
     }
 
     dragIndex.current = null;
