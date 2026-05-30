@@ -163,7 +163,7 @@ export default function CustomRoutine() {
       <div className="max-w-6xl mx-auto px-7 py-5">
         {/* 새 단계 추가 */}
         <div className="mb-6">
-          <p className="body-sm text-gray-500 mb-2">새 단계 추가</p>
+          <p className="body-sm text-blue-900 mb-2">새 단계 추가</p>
           <div className="flex items-center gap-2">
             <Input
               id="newLabel"
@@ -186,7 +186,7 @@ export default function CustomRoutine() {
 
         {/* 단계 목록 */}
         <div className="mb-8">
-          <p className="body-sm text-gray-500 mb-3">단계 목록</p>
+          <p className="body-sm text-blue-900 mb-3">단계 목록</p>
           <div className="flex flex-col">
             {items.map((item, index) => (
               <div
