@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Button from "../components/Button";
 import Dropdown from "../components/Dropdown";
 import { BsFillPersonFill } from "react-icons/bs";
 import { getMe, updateMe, deleteMe, getRouteHistory, uploadProfileImage } from "../api/api";
+import { useNavigate } from "react-router-dom";
 
 const timeOptions = [
   { index: 0, value: "5" },
@@ -184,6 +185,7 @@ function AlarmSettingModal({ isOpen, onClose }) {
 }
 
 export default function MyPage() {
+  const navigate = useNavigate();
   const [showUserInfo, setShowUserInfo] = useState(false);
   const [showAlarmSetting, setShowAlarmSetting] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
@@ -218,7 +220,10 @@ export default function MyPage() {
     if (window.confirm("정말 탈퇴하시겠습니까?")) {
       try {
         await deleteMe();
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
         alert("탈퇴되었습니다.");
+        navigate("/");
       } catch (err) {
         console.error("탈퇴 실패:", err);
       }

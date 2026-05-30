@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AiOutlinePushpin, AiFillPushpin } from "react-icons/ai";
 import { BsFillPlayFill } from "react-icons/bs";
@@ -108,21 +108,21 @@ export default function CheckList() {
     }
   };
 
-  const updateTodoLabel = async (id, val) => {
-    try {
-      await updateChecklist(id, { title: val });
-      setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
-    } catch (err) {
-      console.error("수정 실패:", err);
-    }
-  };
+  const updateTodoLabel = (id, val) =>
+    setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
 
-  const updateMustLabel = async (id, val) => {
+  const updateMustLabel = (id, val) =>
+    setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
+
+  const handleComplete = async () => {
     try {
-      await updateChecklist(id, { title: val });
-      setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
+      await Promise.all([
+        ...todos.map((i) => updateChecklist(i.id, { title: i.title })),
+        ...mustdos.map((i) => updateChecklist(i.id, { title: i.title })),
+      ]);
+      navigate("/route");
     } catch (err) {
-      console.error("수정 실패:", err);
+      console.error("저장 실패:", err);
     }
   };
 
@@ -254,7 +254,7 @@ export default function CheckList() {
           />
           <Button
             text="완료하기"
-            onClick={() => navigate("/route")}
+            onClick={handleComplete}
           />
         </div>
       </div>
