@@ -159,7 +159,7 @@ function TimelineItem({ time, label, isLast, trafficType, laneNames }) {
   );
 }
 
-function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, toggleChecklistItem, navigate }) {
+function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, toggleChecklistItem, navigate, departure, destination }) {
   const routineTimeline = buildRoutineTimeline(activeRoutines, routeResult.prep_start_time);
   const routeTimeline = buildRouteTimeline(routeResult.sub_paths, routeResult.recommended_departure_time);
   const routeMinutes = Math.max(routeResult.total_minutes - routeResult.routine_minutes, 0);
@@ -245,7 +245,21 @@ function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, togg
             ))}
           </div>
           <div className="mt-4">
-            <Button text="시작" onClick={() => navigate("/route/active")} />
+            <Button
+                text="시작"
+                onClick={() => navigate("/route/active", {
+                  state: {
+                    routineId: activeRoutines[0]?.id ?? null,
+                    searchId: routeResult.search_id,
+                    departure,
+                    destination,
+                    arrivalTarget: routeResult.arrival_time,
+                    plannedDepartureTime: routeResult.recommended_departure_time,
+                    routineStartTime: routeResult.prep_start_time,
+                    subPaths: routeResult.sub_paths,
+                  },
+                })}
+              />
           </div>
         </div>
       </div>
@@ -484,6 +498,8 @@ export default function RouteSearch() {
             allChecklistItems={allChecklistItems}
             toggleChecklistItem={toggleChecklistItem}
             navigate={navigate}
+            departure={departure}
+            destination={destination}
           />
         ) : null}
       </div>
