@@ -149,7 +149,7 @@ export default function CustomRoutine() {
     <div className="min-h-screen bg-white">
       {/* 헤더 */}
       <div className="bg-blue-100 py-10">
-        <div className="max-w-6xl mx-auto px-7">
+        <div className="max-w-xl mx-auto px-4">
           <p className="body-sm text-blue-500 mb-1">Custom Routine</p>
           <h1 className="title-h2 text-blue-900 leading-tight mb-3">
             준비 단계<br />설정
@@ -160,7 +160,7 @@ export default function CustomRoutine() {
       </div>
 
       {/* 본문 */}
-      <div className="max-w-6xl mx-auto px-7 py-5">
+      <div className="max-w-xl mx-auto px-4 py-8">
         {/* 새 단계 추가 */}
         <div className="mb-6">
           <p className="body-sm text-blue-900 mb-2">새 단계 추가</p>
