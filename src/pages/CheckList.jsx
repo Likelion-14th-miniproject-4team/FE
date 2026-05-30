@@ -30,7 +30,7 @@ function PlayIcon() {
 
 function CheckItem({ item, onToggle, onLabelChange, onDelete, onPin, showPin = true }) {
   return (
-    <div className="flex items-center gap-2 last:border-none">
+    <div className="flex items-center gap-3 py-3">
       <input
         type="checkbox"
         checked={item.checked}
@@ -187,29 +187,26 @@ export default function CheckList() {
         </div>
       </div>
 
-      <div className="px-12 py-7">
-      {/* 목록 추가 버튼 */}
-      <div className="flex gap-2 mb-5">
-        <Input
-          value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="여기에 목록을 추가하세요"
-          width="w-full"
-        />
-        <Button
-          text="+"
-          onClick={addItem}
-          bgColor="var(--color-blue-100)"
-          textColor="var(--color-gray-500)"
-          className="border-[1.5px] border-gray-300 text-gray-500 bg-100 w-11 h-11 body-xl"
-        />
-      </div>
+      <div className="max-w-6xl mx-auto px- py-8">
+      {/* 목록 추가 */}
+        <div className="mb-6 max-w-xl mx-auto">
+          <p className="body-sm text-gray-500 mb-2">새 할 일 목록 추가</p>
+            <div className="flex items-center gap-2">
+              <Input
+                value={newItem}
+                onChange={(e) => setNewItem(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="여기에 목록을 추가하세요"
+                width="flex-1"
+              />
+              <Button text="+" onClick={addItem} className="w-10 h-10 rounded-lg text-xl font-bold" />
+            </div>
+        </div>
 
         {/* Panels */}
-        <div className="grid grid-cols-2 gap-4 mb-5">
+        <div className="grid grid-cols-2 gap-6 mb-8">
           {/* To-Do */}
-          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[450px]">
+          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[600px]">
             <div className="flex items-center gap-2 mb-4">
               <PlayIcon />
               <span className="title-h3 text-blue-700">To-Do</span>
@@ -230,7 +227,7 @@ export default function CheckList() {
           </div>
 
           {/* Must-Do */}
-          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[450px]">
+          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[600px]">
             <div className="flex items-center gap-2 mb-4">
               <PlayIcon />
               <span className="title-h3 text-blue-700">Must-Do</span>
@@ -250,7 +247,6 @@ export default function CheckList() {
             </div>
           </div>
         </div>
-
         {/* 선택 삭제 & 저장하기 버튼 */}
         <div className="flex justify-between">
           <Button
