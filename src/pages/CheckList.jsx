@@ -60,8 +60,8 @@ function CheckItem({ item, onToggle, onLabelChange, onDelete, onPin, showPin = t
 
 export default function CheckList() {
   const navigate = useNavigate();
-  const [todos, setTodos] = useState(initialTodos);
-  const [mustdos, setMustdos] = useState(initialMustdos);
+  const [todos, setTodos] = useState([]);
+  const [mustdos, setMustdos] = useState([]);
   const [newItem, setNewItem] = useState("");
 
   // 페이지 로드 시 데이터 불러오기
@@ -69,12 +69,12 @@ export default function CheckList() {
     const fetchData = async () => {
       try {
         const res = await getChecklists();
-        const todos = res.filter((item) => !item.must_do);
-        const mustdos = res.filter((item) => item.must_do);
-        setTodos(todos);
-        setMustdos(mustdos);
+        setTodos(res.todo);
+        setMustdos(res.must_do);
       } catch (err) {
         console.error("조회 실패:", err);
+        setTodos(initialTodos);
+        setMustdos(initialMustdos);
       }
     };
     fetchData();
@@ -84,7 +84,7 @@ export default function CheckList() {
     const title = newItem.trim();
     if (!title) return;
     try {
-      const res = await createChecklist({ title, checked: false });
+      const res = await createChecklist({ title });
       setTodos((prev) => [...prev, res]);
       setNewItem("");
     } catch (err) {
@@ -96,17 +96,17 @@ export default function CheckList() {
     if (e.key === "Enter") addItem();
   };
 
-  const toggleTodo = async (id) => {
-    const item = todos.find((i) => i.id === id);
+  const toggleItem = async (id) => {
+    const item = todos.find((i) => i.id === id) ?? mustdos.find((i) => i.id === id);
+    if (!item) return;
     try {
       await updateChecklist(id, { checked: !item.checked });
       setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
+      setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
     } catch (err) {
       console.error("수정 실패:", err);
     }
   };
-  const toggleMust = (id) =>
-    setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
 
   const updateTodoLabel = async (id, val) => {
     try {
@@ -117,17 +117,21 @@ export default function CheckList() {
     }
   };
 
-  const updateMustLabel = (id, val) =>
-    setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
+  const updateMustLabel = async (id, val) => {
+    try {
+      await updateChecklist(id, { title: val });
+      setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
+    } catch (err) {
+      console.error("수정 실패:", err);
+    }
+  };
 
   const pinItem = async (id) => {
     try {
       await updateChecklist(id, { fixed: true });
-      const res =await getChecklists();
-      const todos = res.filter((item) => !item.must_do);
-      const mustdos = res.filter((item) => item.must_do);
-      setTodos(todos);
-      setMustdos(mustdos);
+      const res = await getChecklists();
+      setTodos(res.todo);
+      setMustdos(res.must_do);
     } catch (err) {
       console.error("고정 실패:", err);
     }
@@ -166,11 +170,6 @@ export default function CheckList() {
     }
   };
 
-  const goToRoute = () => {
-    navigate("/route")
-  };
-  
-
   return (
     <div className="min-h-screen bg-white">
       {/* 제목 박스 */}
@@ -187,7 +186,7 @@ export default function CheckList() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px- py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
       {/* 목록 추가 */}
         <div className="mb-6 max-w-xl mx-auto">
           <p className="body-sm text-gray-500 mb-2">새 할 일 목록 추가</p>
@@ -206,7 +205,7 @@ export default function CheckList() {
         {/* Panels */}
         <div className="grid grid-cols-2 gap-6 mb-8">
           {/* To-Do */}
-          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[600px]">
+          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-150">
             <div className="flex items-center gap-2 mb-4">
               <PlayIcon />
               <span className="title-h3 text-blue-700">To-Do</span>
@@ -216,7 +215,7 @@ export default function CheckList() {
                 <CheckItem
                   key={item.id}
                   item={item}
-                  onToggle={toggleTodo}
+                  onToggle={toggleItem}
                   onLabelChange={updateTodoLabel}
                   onDelete={deleteTodo}
                   onPin={pinItem}
@@ -227,7 +226,7 @@ export default function CheckList() {
           </div>
 
           {/* Must-Do */}
-          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[600px]">
+          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-150">
             <div className="flex items-center gap-2 mb-4">
               <PlayIcon />
               <span className="title-h3 text-blue-700">Must-Do</span>
@@ -237,7 +236,7 @@ export default function CheckList() {
                 <CheckItem
                   key={item.id}
                   item={item}
-                  onToggle={toggleMust}
+                  onToggle={toggleItem}
                   onLabelChange={updateMustLabel}
                   onDelete={deleteMust}
                   onPin={() => {}}
@@ -255,7 +254,7 @@ export default function CheckList() {
           />
           <Button
             text="완료하기"
-            onClick={goToRoute}
+            onClick={() => navigate("/route")}
           />
         </div>
       </div>
