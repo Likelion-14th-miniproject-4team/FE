@@ -149,7 +149,7 @@ export default function CustomRoutine() {
     <div className="min-h-screen bg-white">
       {/* 헤더 */}
       <div className="bg-blue-100 py-10">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-7">
           <p className="body-sm text-blue-500 mb-1">Custom Routine</p>
           <h1 className="title-h2 text-blue-900 leading-tight mb-3">
             준비 단계<br />설정
@@ -160,10 +160,10 @@ export default function CustomRoutine() {
       </div>
 
       {/* 본문 */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-7 py-5">
         {/* 새 단계 추가 */}
         <div className="mb-6">
-          <p className="body-sm text-blue-900 mb-2">새 단계 추가</p>
+          <p className="body-sm text-gray-500 mb-2">새 단계 추가</p>
           <div className="flex items-center gap-2">
             <Input
               id="newLabel"
@@ -177,7 +177,7 @@ export default function CustomRoutine() {
               type="number"
               value={newTime}
               onChange={(e) => setNewTime(Number(e.target.value))}
-              width="w-18"
+              width="w-16"
             />
             <span className="body-sm text-gray-500">분</span>
             <Button text="+" onClick={handleAdd} className="w-10 h-10 rounded-lg text-xl font-bold" />
@@ -186,7 +186,7 @@ export default function CustomRoutine() {
 
         {/* 단계 목록 */}
         <div className="mb-8">
-          <p className="body-sm text-blue-900 mb-3">단계 목록</p>
+          <p className="body-sm text-gray-500 mb-3">단계 목록</p>
           <div className="flex flex-col">
             {items.map((item, index) => (
               <div
