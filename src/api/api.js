@@ -10,7 +10,7 @@ export const reorderRoutine = (id, body) => client.patch(`/routines/${id}/reorde
 
 // Route
 export const searchRoute = (body) => client.post("/routes/search", body);
-export const getRouteHistory = () => client.get("/routes/history");
+export const getRouteHistory = (params = {}) => client.get("/routes/history", { params });
 
 // Checklist
 export const getChecklists = () => client.get("/checklists");
@@ -21,12 +21,19 @@ export const updateChecklist = (id, body) => client.patch(`/checklists/${id}`, b
 // Countdown
 export const startCountdown = (body) => client.post("/countdown/start", body);
 export const completeCountdownItem = (id, body) => client.patch(`/countdown/${id}/item`, body);
-export const departCountdown = (id, body) => client.patch(`/countdown/${id}/depart`, body);
+export const departCountdown = (id) => client.patch(`/countdown/${id}/depart`);
 
 // User
 export const getMe = () => client.get("/users/me");
 export const updateMe = (body) => client.patch("/users/me", body);
 export const deleteMe = () => client.delete("/users/me");
+export const uploadProfileImage = (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return client.post("/users/me/profile-image", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
 
 // Auth
 export const logout = () => client.post("/auth/logout");
