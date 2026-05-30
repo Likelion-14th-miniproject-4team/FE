@@ -1,21 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AiOutlinePushpin, AiFillPushpin } from "react-icons/ai";
 import { BsFillPlayFill } from "react-icons/bs";
 import Input from "../components/Input";
 import Button from "../components/Button";
-
+import { getChecklists, createChecklist, deleteChecklist, updateChecklist } from "../api/api"
 
 const initialTodos = [
-  { id: 1, label: "", checked: false },
-  { id: 2, label: "", checked: false },
-  { id: 3, label: "", checked: false },
+  { id: 1, title: "", checked: false },
+  { id: 2, title: "", checked: false },
+  { id: 3, title: "", checked: false },
 ];
 
 const initialMustdos = [
-  { id: 4, label: "", checked: false },
+  { id: 4, title: "", checked: false },
 ];
-
-let nextId = 5;
 
 function PinIcon({ active }) {
   return active ? (
@@ -26,12 +25,12 @@ function PinIcon({ active }) {
 }
 
 function PlayIcon() {
-  return <BsFillPlayFill size={40} className="text-gray-600" />;
+  return <BsFillPlayFill size={40} className="text-blue-600" />;
 }
 
 function CheckItem({ item, onToggle, onLabelChange, onDelete, onPin, showPin = true }) {
   return (
-    <div className="flex items-center gap-2 last:border-none">
+    <div className="flex items-center gap-3 py-3">
       <input
         type="checkbox"
         checked={item.checked}
@@ -40,7 +39,7 @@ function CheckItem({ item, onToggle, onLabelChange, onDelete, onPin, showPin = t
       />
       <input
         type="text"
-        value={item.label}
+        value={item.title}
         placeholder="내용을 입력하세요..."
         onChange={(e) => onLabelChange(item.id, e.target.value)}
         className={`flex-1 body-md text-blue-900 bg-transparent outline-none border-0 border-b border-gray-300 pb-0.5 placeholder-slate-400 ${item.checked ? "line-through text-slate-400" : ""}`}
@@ -60,91 +59,154 @@ function CheckItem({ item, onToggle, onLabelChange, onDelete, onPin, showPin = t
 }
 
 export default function CheckList() {
+  const navigate = useNavigate();
   const [todos, setTodos] = useState(initialTodos);
   const [mustdos, setMustdos] = useState(initialMustdos);
   const [newItem, setNewItem] = useState("");
 
-  const addItem = () => {
-    const label = newItem.trim();
-    if (!label) return;  // list → label
-    setTodos((prev) => [...prev, { id: nextId++, label, checked: false }]);
-    setNewItem("");
-  };
+  // 페이지 로드 시 데이터 불러오기
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await getChecklists();
+        const todos = res.filter((item) => !item.must_do);
+        const mustdos = res.filter((item) => item.must_do);
+        setTodos(todos);
+        setMustdos(mustdos);
+      } catch (err) {
+        console.error("조회 실패:", err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const addItem = async () => {
+    const title = newItem.trim();
+    if (!title) return;
+    try {
+      const res = await createChecklist({ title, checked: false });
+      setTodos((prev) => [...prev, res]);
+      setNewItem("");
+    } catch (err) {
+      console.error("추가 실패:", err);
+    }
+  }
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") addItem();
   };
 
-  const toggleTodo = (id) =>
-    setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
-
+  const toggleTodo = async (id) => {
+    const item = todos.find((i) => i.id === id);
+    try {
+      await updateChecklist(id, { checked: !item.checked });
+      setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
+    } catch (err) {
+      console.error("수정 실패:", err);
+    }
+  };
   const toggleMust = (id) =>
     setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
 
-  const updateTodoLabel = (id, val) =>
-    setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, label: val } : i)));
+  const updateTodoLabel = async (id, val) => {
+    try {
+      await updateChecklist(id, { title: val });
+      setTodos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
+    } catch (err) {
+      console.error("수정 실패:", err);
+    }
+  };
 
   const updateMustLabel = (id, val) =>
-    setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, label: val } : i)));
+    setMustdos((prev) => prev.map((i) => (i.id === id ? { ...i, title: val } : i)));
 
-  const pinItem = (id) => {
-    const item = todos.find((i) => i.id === id);
-    if (!item) return;
-    setTodos((prev) => prev.filter((i) => i.id !== id));
-    setMustdos((prev) => [...prev, { id: item.id, label: item.label, checked: item.checked }]);
+  const pinItem = async (id) => {
+    try {
+      await updateChecklist(id, { fixed: true });
+      const res =await getChecklists();
+      const todos = res.filter((item) => !item.must_do);
+      const mustdos = res.filter((item) => item.must_do);
+      setTodos(todos);
+      setMustdos(mustdos);
+    } catch (err) {
+      console.error("고정 실패:", err);
+    }
   };
 
-  const deleteSelected = () => {
-    setTodos((prev) => prev.filter((i) => !i.checked));
-    setMustdos((prev) => prev.filter((i) => !i.checked));
+  const deleteSelected = async () => {
+    try {
+      const checkedTodos = todos.filter((i) => i.checked);
+      const checkedMusts = mustdos.filter((i) => i.checked);
+      await Promise.all([
+        ...checkedTodos.map((i) => deleteChecklist(i.id)),
+        ...checkedMusts.map((i) => deleteChecklist(i.id)),
+      ]);
+      setTodos((prev) => prev.filter((i) => !i.checked));
+      setMustdos((prev) => prev.filter((i) => !i.checked));
+    } catch (err) {
+      console.error("삭제 실패:", err);
+    }
+  }
+
+  const deleteTodo = async (id) => {
+    try {
+      await deleteChecklist(id);
+      setTodos((prev) => prev.filter((i) => i.id !== id));
+    } catch (err) {
+      console.error("삭제 실패:", err);
+    }
   };
 
-  const saveList = () => {
-    alert("저장되었습니다!");
+  const deleteMust = async (id) => {
+    try {
+      await deleteChecklist(id);
+      setMustdos((prev) => prev.filter((i) => i.id !== id));
+    } catch (err) {
+      console.error("삭제 실패:", err);
+    }
   };
 
-  const deleteTodo = (id) => setTodos((prev) => prev.filter((i) => i.id !== id));
-  const deleteMust = (id) => setMustdos((prev) => prev.filter((i) => i.id !== id));
+  const goToRoute = () => {
+    navigate("/route")
+  };
+  
 
   return (
     <div className="min-h-screen bg-white">
       {/* 제목 박스 */}
-      <div className="bg-blue-100 flex flex-col items-center py-10">
-        <div className="w-full max-w-[1200px] px-12">
-          <p className="body-sm text-blue-900 mb-3">CheckList</p>
-          <h1 className="title-h1 text-blue-700 mb-3">
+      <div className="bg-blue-100 px-16 py-10">
+        <div className="max-w-xl mx-auto">
+          <p className="body-sm text-blue-500 mb-1">CheckList</p>
+          <h1 className="title-h2 text-blue-900 leading-tight mb-3">
             체크<br />리스트
           </h1>
-          <p className="body-sm text-blue-900 mb-3">
+          <p className="body-sm text-gray-500">
             오늘 해야할 일들을 정리해보세요.<br />
             반드시 해야하거나 우선적으로 해야할 일들은 핀버튼을 통해 고정시켜보세요.
           </p>
         </div>
       </div>
 
-      <div className="px-12 py-7">
-      {/* 목록 추가 버튼 */}
-      <div className="flex gap-2 mb-5">
-        <Input
-          value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="여기에 목록을 추가하세요"
-          width="w-full"
-        />
-        <Button
-          text="+"
-          onClick={addItem}
-          bgColor="var(--color-blue-100)"
-          textColor="var(--color-gray-500)"
-          className="border-[1.5px] border-gray-300 text-gray-500 bg-100 w-11 h-11 body-xl"
-        />
-      </div>
+      <div className="max-w-6xl mx-auto px- py-8">
+      {/* 목록 추가 */}
+        <div className="mb-6 max-w-xl mx-auto">
+          <p className="body-sm text-gray-500 mb-2">새 할 일 목록 추가</p>
+            <div className="flex items-center gap-2">
+              <Input
+                value={newItem}
+                onChange={(e) => setNewItem(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="여기에 목록을 추가하세요"
+                width="flex-1"
+              />
+              <Button text="+" onClick={addItem} className="w-10 h-10 rounded-lg text-xl font-bold" />
+            </div>
+        </div>
 
         {/* Panels */}
-        <div className="grid grid-cols-2 gap-4 mb-5">
+        <div className="grid grid-cols-2 gap-6 mb-8">
           {/* To-Do */}
-          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[450px]">
+          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[600px]">
             <div className="flex items-center gap-2 mb-4">
               <PlayIcon />
               <span className="title-h3 text-blue-700">To-Do</span>
@@ -165,7 +227,7 @@ export default function CheckList() {
           </div>
 
           {/* Must-Do */}
-          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[450px]">
+          <div className="bg-gray-100 rounded-lg border border-gray-300 px-8 py-6 min-h-[600px]">
             <div className="flex items-center gap-2 mb-4">
               <PlayIcon />
               <span className="title-h3 text-blue-700">Must-Do</span>
@@ -185,7 +247,6 @@ export default function CheckList() {
             </div>
           </div>
         </div>
-
         {/* 선택 삭제 & 저장하기 버튼 */}
         <div className="flex justify-between">
           <Button
@@ -193,11 +254,11 @@ export default function CheckList() {
             onClick={deleteSelected}
           />
           <Button
-            text="저장하기"
-            onClick={saveList}
+            text="완료하기"
+            onClick={goToRoute}
           />
         </div>
       </div>
     </div>
   );
-}
+};

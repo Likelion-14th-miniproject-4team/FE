@@ -205,7 +205,7 @@ export default function MyPage() {
     const fetchRoutes = async () => {
       try {
         const res = await getRouteHistory();
-        setRouteHistory(res);
+        setRouteHistory(res.content);
       } catch (err) {
         console.error("경로 기록 조회 실패:", err);
       }
@@ -215,6 +215,16 @@ export default function MyPage() {
     fetchRoutes(); 
   }, []);
 
+  const handleDeleteAccount = async () => {
+    if (window.confirm("정말 탈퇴하시겠습니까?")) {
+      try {
+        await deleteMe();
+        alert("탈퇴되었습니다.");
+      } catch (err) {
+        console.error("탈퇴 실패:", err);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -262,7 +272,7 @@ export default function MyPage() {
             <div className="flex flex-col gap-4">
               {routeHistory.map((item) => (
                 <RouteCard
-                  key={item.id}
+                  key={item.search_id}
                   searched_at={item.searched_at}
                   origin={item.origin}
                   destination={item.destination}
