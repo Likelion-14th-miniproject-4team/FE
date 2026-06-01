@@ -257,6 +257,7 @@ function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, togg
                     plannedDepartureTime: routeResult.recommended_departure_time,
                     routineStartTime: routeResult.prep_start_time,
                     subPaths: routeResult.sub_paths,
+                    transportOption: transport.value,
                   },
                 })}
               />

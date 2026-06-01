@@ -2,23 +2,23 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Button from "../components/Button";
 import { MdDirectionsBus, MdDirectionsWalk, MdSubway, MdLocationOn } from "react-icons/md";
-import { startCountdown, completeCountdownItem, departCountdown, getMe } from "../api/api";
+import { startCountdown, completeCountdownItem, departCountdown, getMe, searchRoute } from "../api/api";
 
 // ── 색상 매핑 객체 ──────────────────────────────────────────────
 const COLOR_MAP = {
   departure: "bg-white border-gray-200",
-  bus:       "bg-red-200 border-red-800",
-  walk:      "bg-white border-gray-200",
-  subway:    "bg-green-300 border-green-800",
-  arrival:   "bg-white border-gray-200",
+  bus: "bg-red-200 border-red-800",
+  walk: "bg-white border-gray-200",
+  subway: "bg-green-300 border-green-800",
+  arrival: "bg-white border-gray-200",
 };
 
 const ICON_COLOR_MAP = {
   departure: "text-green-600",
-  bus:       "text-red-700",
-  walk:      "text-gray-500",
-  subway:    "text-green-700",
-  arrival:   "text-red-600",
+  bus: "text-red-700",
+  walk: "text-gray-500",
+  subway: "text-green-700",
+  arrival: "text-red-600",
 };
 
 // ── 유틸 ──────────────────────────────────────────────
@@ -42,13 +42,21 @@ function formatTime(isoOrHHmm) {
   if (isoOrHHmm.includes("T")) return isoOrHHmm.split("T")[1].slice(0, 5);
   return isoOrHHmm;
 }
+function toISOTime(timeStr) {
+  const today = new Date();
+  const [h, m] = timeStr.split(":").map(Number);
+  const yyyy = today.getFullYear();
+  const MM = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  return `${yyyy}-${MM}-${dd}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
+}
 
 // ── 아이콘 ──────────────────────────────────────────────
 function RouteIcon({ type }) {
   const cls = `w-4 h-4 ${ICON_COLOR_MAP[type] || "text-gray-500"}`;
-  if (type === "walk")      return <MdDirectionsWalk className={cls} />;
-  if (type === "subway")    return <MdSubway className={cls} />;
-  if (type === "arrival")   return <MdLocationOn className={cls} />;
+  if (type === "walk") return <MdDirectionsWalk className={cls} />;
+  if (type === "subway") return <MdSubway className={cls} />;
+  if (type === "arrival") return <MdLocationOn className={cls} />;
   if (type === "departure") return <MdLocationOn className={cls} />;
   return <MdDirectionsBus className={cls} />;
 }
@@ -67,7 +75,8 @@ export default function RouteActive() {
   const arrivalTarget = formatTime(raw.arrivalTarget ?? "--:--");
   const plannedDepartureTime = formatTime(raw.plannedDepartureTime ?? "--:--");
   const routineStartTime = formatTime(raw.routineStartTime ?? "--:--");
-  const subPaths = raw.subPaths ?? [];
+  const transportOption = raw.transportOption ?? "mixed";
+  const [subPaths, setSubPaths] = useState(raw.subPaths ?? []);
 
   // ── 세션 상태 ──
   const [sessionId, setSessionId] = useState(null);
@@ -100,7 +109,10 @@ export default function RouteActive() {
   useEffect(() => {
     const initCountdown = async () => {
       try {
-        const res = await startCountdown({ routine_id: routineId, search_id: searchId });
+        const res = await startCountdown({
+          routine_id: routineId,
+          search_id: searchId,
+        });
         setSessionId(res.session_id);
         setSlackMinutes(res.slack_minutes);
 
@@ -124,7 +136,8 @@ export default function RouteActive() {
           });
         }
         setSteps(initialSteps);
-        if (res.current_item) setActiveTimer(res.current_item.duration_min * 60);
+        if (res.current_item)
+          setActiveTimer(res.current_item.duration_min * 60);
       } catch (err) {
         console.error("카운트다운 시작 실패", err);
       } finally {
@@ -150,7 +163,13 @@ export default function RouteActive() {
 
   // ── 브라우저 알림 체크 ──
   useEffect(() => {
-    if (!alertOffsetMinutes || alarmFired || !plannedDepartureTime || plannedDepartureTime === "--:--") return;
+    if (
+      !alertOffsetMinutes ||
+      alarmFired ||
+      !plannedDepartureTime ||
+      plannedDepartureTime === "--:--"
+    )
+      return;
     const nowMins = now.getHours() * 60 + now.getMinutes();
     const departureMins = toMinutes(plannedDepartureTime);
     const alertMins = departureMins - alertOffsetMinutes;
@@ -174,7 +193,8 @@ export default function RouteActive() {
 
   const nowMins = now.getHours() * 60 + now.getMinutes();
   const remainSecs = Math.max(
-    (toMinutes(plannedDepartureTime) - nowMins) * 60 - now.getSeconds(), 0
+    (toMinutes(plannedDepartureTime) - nowMins) * 60 - now.getSeconds(),
+    0,
   );
   const doneCount = steps.filter((s) => s.status === "done").length;
 
@@ -208,12 +228,21 @@ export default function RouteActive() {
     const savedMinutes = steps[activeIndex].plannedDuration - realActual;
 
     try {
-      const res = await completeCountdownItem(sessionId, { item_id: id, action: "complete" });
+      const res = await completeCountdownItem(sessionId, {
+        item_id: id,
+        action: "complete",
+      });
       setSlackMinutes(res.slack_minutes);
 
       setSteps((prev) => {
         const updated = prev.map((s, i) => {
-          if (s.id === id) return { ...s, status: "done", actualDuration: realActual, savedMinutes };
+          if (s.id === id)
+            return {
+              ...s,
+              status: "done",
+              actualDuration: realActual,
+              savedMinutes,
+            };
           if (i === activeIndex + 1) return { ...s, status: "active" };
           return s;
         });
@@ -239,11 +268,26 @@ export default function RouteActive() {
   // ── 지금 출발 ──
   const handleDepart = async () => {
     try {
-      const res = await departCountdown(sessionId);
-      const departedAt = formatTime(res.departed_at);
+      const departRes = await departCountdown(sessionId);
+      const departedAt = formatTime(departRes.departed_at);
+      const newArrivalISO = toISOTime(arrivalTarget);
+
+      try {
+        const routeRes = await searchRoute({
+          origin: departure,
+          destination,
+          arrival_time: newArrivalISO,
+          transport_option: transportOption,
+        });
+        setSubPaths(routeRes.sub_paths);
+        setActualDepartureTime(formatTime(routeRes.recommended_departure_time));
+      } catch {
+        // 폴백: departed_at 기준 로컬 계산
+        setActualDepartureTime(departedAt);
+      }
+
       setDeparted(true);
-      setActualDepartureTime(departedAt);
-      setSlackMinutes(res.slack_minutes);
+      setSlackMinutes(departRes.slack_minutes);
     } catch (err) {
       console.error("출발 처리 실패", err);
     }
@@ -259,9 +303,12 @@ export default function RouteActive() {
       const [h, m] = cursor.split(":").map(Number);
       const total = h * 60 + m + path.section_time;
       cursor = toTimeStr(total);
-      const type = i === 0 ? "departure"
-        : i === subPaths.length - 1 ? "arrival"
-        : typeMap[path.traffic_type] ?? "walk";
+      const type =
+        i === 0
+          ? "departure"
+          : i === subPaths.length - 1
+            ? "arrival"
+            : (typeMap[path.traffic_type] ?? "walk");
 
       const laneColor = path.lane_colors?.[0] ?? null;
       const laneNames = path.lane_names ?? [];
@@ -279,7 +326,10 @@ export default function RouteActive() {
       };
     });
   };
-  const effectiveDeparture = departed && actualDepartureTime ? actualDepartureTime : plannedDepartureTime;
+  const effectiveDeparture =
+    departed && actualDepartureTime
+      ? actualDepartureTime
+      : plannedDepartureTime;
   const routeSteps = buildRouteSteps(effectiveDeparture);
 
   if (loading) {
@@ -293,7 +343,9 @@ export default function RouteActive() {
   if (!searchId) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <p className="body-md text-gray-500">경로 정보가 없어요. 다시 검색해주세요.</p>
+        <p className="body-md text-gray-500">
+          경로 정보가 없어요. 다시 검색해주세요.
+        </p>
         <Button text="돌아가기" onClick={() => navigate("/route")} />
       </div>
     );
@@ -302,7 +354,6 @@ export default function RouteActive() {
   return (
     <div className="min-h-screen bg-white px-7 py-5">
       <div className="max-w-170 mx-auto">
-
         <p className="body-xs text-blue-900 mb-3">길찾기</p>
 
         <div className="flex items-center pb-4 border-b border-blue-600 mb-4">
@@ -324,18 +375,32 @@ export default function RouteActive() {
         <div className="flex items-center gap-4 pb-4 border-b border-blue-600 mb-3">
           <div>
             <p className="body-xs text-blue-900 mb-0.5">출발 시각</p>
-            <p className="title-h3 text-blue-900 font-bold">{plannedDepartureTime}</p>
+            <p className="title-h3 text-blue-900 font-bold">
+              {departed && actualDepartureTime
+                ? actualDepartureTime
+                : plannedDepartureTime}
+            </p>
           </div>
           <span className="title-h4 text-blue-600 mt-3">/</span>
           <div>
             <p className="body-xs text-blue-900 mb-0.5">출발까지</p>
-            <p className={`title-h3 font-bold ${remainSecs === 0 ? "text-red-500" : "text-blue-900"}`}>
-              {toMMSS(remainSecs)}
-            </p>
+            {departed ? (
+              <p className="title-h3 font-bold text-green-600">출발 완료</p>
+            ) : (
+              <p
+                className={`title-h3 font-bold ${remainSecs === 0 ? "text-red-500" : "text-blue-900"}`}
+              >
+                {toMMSS(remainSecs)}
+              </p>
+            )}
           </div>
-          {slackMinutes > 0 && (
+          {!departed && slackMinutes > 0 && (
             <div className="ml-auto">
-              <Button text={`+${slackMinutes} 분 여유`} onClick={() => {}} className="body-xs px-4 py-2 rounded-lg" />
+              <Button
+                text={`+${slackMinutes} 분 여유`}
+                onClick={() => {}}
+                className="body-xs px-4 py-2 rounded-lg"
+              />
             </div>
           )}
         </div>
@@ -350,75 +415,121 @@ export default function RouteActive() {
           </div>
         )}
 
-        <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 280px)" }}>
-
+        <div
+          className="overflow-y-auto"
+          style={{ maxHeight: "calc(100vh - 280px)" }}
+        >
           {/* 출발 완료 안내 */}
           {departed && (
             <div className="flex items-center gap-2 bg-green-50 border border-green-300 rounded-lg px-4 py-2.5 mb-4">
               <span className="text-green-600 text-sm">🚀</span>
-              <p className="body-xs text-green-700 font-semibold">출발했어요! 안전하게 이동하세요.</p>
+              <p className="body-xs text-green-700 font-semibold">
+                출발했어요! 목표 도착 시각보다 {slackMinutes}분 일찍 도착할
+                예정이에요.
+              </p>
             </div>
           )}
 
           {/* 준비 단계 */}
-          {!departed && <div className="mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="body-xs text-blue-900">준비 단계</p>
-              <p className="body-xs text-blue-900">{doneCount} / {steps.length} 완료</p>
-            </div>
+          {!departed && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="body-xs text-blue-900">준비 단계</p>
+                <p className="body-xs text-blue-900">
+                  {doneCount} / {steps.length} 완료
+                </p>
+              </div>
 
-            <div className="flex flex-col">
-              {steps.map((step, index) => {
-                const isDone = step.status === "done";
-                const isActive = step.status === "active";
+              <div className="flex flex-col">
+                {steps.map((step, index) => {
+                  const isDone = step.status === "done";
+                  const isActive = step.status === "active";
 
-                return (
-                  <div key={step.id} className="flex items-start gap-3">
-                    <span className="body-xs text-blue-1000 w-9 shrink-0 pt-2.5 text-right">
-                      {stepStartTimes[index]}
-                    </span>
-                    <div className="flex flex-col items-center">
-                      <div className="mt-2.5">
-                        <span className={`block w-2 h-2 rounded-full ${
-                          isDone ? "bg-gray-300" : isActive ? "bg-blue-700" : "border-2 border-gray-300 bg-white"
-                        }`} />
-                      </div>
-                      {index < steps.length - 1 && (
-                        <span className="w-px bg-gray-200 flex-1 min-h-8" />
-                      )}
-                    </div>
-                    <div className={`flex-1 pb-2 ${
-                      isActive ? "rounded-lg bg-green-200 border border-green-800 px-3 py-2 mb-1"
-                      : isDone ? "py-1" : "py-1"
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <span className={`body-sm ${isDone ? "text-gray-400 line-through" : "text-blue-1000"}`}>
-                          {step.name}
-                        </span>
-                        {isDone && <span className="body-xs text-gray-400">완료 ✓</span>}
-                        {isActive && (
-                          <div className="flex items-center gap-2">
-                            <span className={`body-sm font-medium ${
-                              activeTimer <= 60 ? "text-red-500" :
-                              activeTimer <= 180 ? "text-orange-400" : "text-blue-1000"
-                            }`}>{toMMSS(activeTimer)}</span>
-                            <Button text="✓" onClick={() => handleComplete(step.id)} className="w-7 h-7 rounded-lg text-sm" />
-                          </div>
+                  return (
+                    <div key={step.id} className="flex items-start gap-3">
+                      <span className="body-xs text-blue-1000 w-9 shrink-0 pt-2.5 text-right">
+                        {stepStartTimes[index]}
+                      </span>
+                      <div className="flex flex-col items-center">
+                        <div className="mt-2.5">
+                          <span
+                            className={`block w-2 h-2 rounded-full ${
+                              isDone
+                                ? "bg-gray-300"
+                                : isActive
+                                  ? "bg-blue-700"
+                                  : "border-2 border-gray-300 bg-white"
+                            }`}
+                          />
+                        </div>
+                        {index < steps.length - 1 && (
+                          <span className="w-px bg-gray-200 flex-1 min-h-8" />
                         )}
                       </div>
-                      {isDone && (
-                        <p className="body-xs text-blue-1000 mt-0.5">
-                          {step.plannedDuration}분 소요 → {step.actualDuration}분 소요
-                          {step.savedMinutes > 0 && <span className="text-green-500 ml-1">여유 +{step.savedMinutes}분</span>}
-                        </p>
-                      )}
-                      {isActive && <p className="body-xs text-green-600 mt-0.5">{step.plannedDuration}분 소요</p>}
+                      <div
+                        className={`flex-1 pb-2 ${
+                          isActive
+                            ? "rounded-lg bg-green-200 border border-green-800 px-3 py-2 mb-1"
+                            : isDone
+                              ? "py-1"
+                              : "py-1"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`body-sm ${isDone ? "text-gray-400 line-through" : "text-blue-1000"}`}
+                          >
+                            {step.name}
+                          </span>
+                          {isDone && (
+                            <span className="body-xs text-gray-400">
+                              완료 ✓
+                            </span>
+                          )}
+                          {isActive && (
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`body-sm font-medium ${
+                                  activeTimer <= 60
+                                    ? "text-red-500"
+                                    : activeTimer <= 180
+                                      ? "text-orange-400"
+                                      : "text-blue-1000"
+                                }`}
+                              >
+                                {toMMSS(activeTimer)}
+                              </span>
+                              <Button
+                                text="✓"
+                                onClick={() => handleComplete(step.id)}
+                                className="w-7 h-7 rounded-lg text-sm"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        {isDone && (
+                          <p className="body-xs text-blue-1000 mt-0.5">
+                            {step.plannedDuration}분 소요 →{" "}
+                            {step.actualDuration}분 소요
+                            {step.savedMinutes > 0 && (
+                              <span className="text-green-500 ml-1">
+                                여유 +{step.savedMinutes}분
+                              </span>
+                            )}
+                          </p>
+                        )}
+                        {isActive && (
+                          <p className="body-xs text-green-600 mt-0.5">
+                            {step.plannedDuration}분 소요
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>}
+          )}
 
           {/* 여유 시간 프레임 */}
           {!departed && slackMinutes > 0 && (
@@ -434,12 +545,19 @@ export default function RouteActive() {
               <div className="flex-1 rounded-lg bg-blue-400 border border-blue-800 px-3 py-2 mb-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="body-sm text-blue-1000">여유 {slackMinutes}분 확보</p>
+                    <p className="body-sm text-blue-1000">
+                      여유 {slackMinutes}분 확보
+                    </p>
                     <p className="body-xs text-blue-1000 mt-0.5">
-                      계획 출발 {plannedDepartureTime}&nbsp;&nbsp;지금 출발도 가능해요
+                      계획 출발 {plannedDepartureTime}&nbsp;&nbsp;지금 출발도
+                      가능해요
                     </p>
                   </div>
-                  <Button text="지금 출발 →" onClick={handleDepart} className="body-xs px-3 py-1.5 rounded-lg ml-3" />
+                  <Button
+                    text="지금 출발 →"
+                    onClick={handleDepart}
+                    className="body-xs px-3 py-1.5 rounded-lg ml-3"
+                  />
                 </div>
               </div>
             </div>
@@ -458,7 +576,11 @@ export default function RouteActive() {
                 <div className="flex flex-col items-center">
                   <div
                     className="mt-2 w-5 h-5 rounded-lg border border-gray-200 flex items-center justify-center shrink-0"
-                    style={step.laneColor ? { backgroundColor: step.laneColor + "33" } : {}}
+                    style={
+                      step.laneColor
+                        ? { backgroundColor: step.laneColor + "33" }
+                        : {}
+                    }
                   >
                     <RouteIcon type={step.type} />
                   </div>
@@ -468,7 +590,11 @@ export default function RouteActive() {
                 </div>
                 <div
                   className={`flex-1 rounded-lg px-3 py-2 mb-2 border ${!step.laneColor ? COLOR_MAP[step.type] : "border-gray-200"}`}
-                  style={step.laneColor ? { backgroundColor: step.laneColor + "22" } : {}}
+                  style={
+                    step.laneColor
+                      ? { backgroundColor: step.laneColor + "22" }
+                      : {}
+                  }
                 >
                   <p className="body-sm text-blue-1000">{step.label}</p>
                   {step.sub && step.type === "bus" && (
@@ -482,12 +608,15 @@ export default function RouteActive() {
                   {step.sub && step.type !== "bus" && (
                     <p className="body-xs text-blue-1000 mt-0.5">{step.sub}</p>
                   )}
-                  {step.detail && <p className="body-xs text-blue-1000 mt-0.5">{step.detail}</p>}
+                  {step.detail && (
+                    <p className="body-xs text-blue-1000 mt-0.5">
+                      {step.detail}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
           </div>
-
         </div>
       </div>
     </div>
