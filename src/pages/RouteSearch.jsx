@@ -74,7 +74,6 @@ const TRAFFIC_TYPE = {
 function toISOArrivalTime(timeStr) {
   const today = new Date();
   const [h, m] = timeStr.split(":").map(Number);
-  // KST 기준 ISO 문자열
   const yyyy = today.getFullYear();
   const MM = String(today.getMonth() + 1).padStart(2, "0");
   const dd = String(today.getDate()).padStart(2, "0");
@@ -159,7 +158,7 @@ function TimelineItem({ time, label, isLast, trafficType, laneNames }) {
   );
 }
 
-function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, toggleChecklistItem, navigate, departure, destination }) {
+function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, toggleChecklistItem, navigate, departure, destination, transportOption }) {
   const routineTimeline = buildRoutineTimeline(activeRoutines, routeResult.prep_start_time);
   const routeTimeline = buildRouteTimeline(routeResult.sub_paths, routeResult.recommended_departure_time);
   const routeMinutes = Math.max(routeResult.total_minutes - routeResult.routine_minutes, 0);
@@ -246,21 +245,21 @@ function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, togg
           </div>
           <div className="mt-4">
             <Button
-                text="시작"
-                onClick={() => navigate("/route/active", {
-                  state: {
-                    routineId: activeRoutines[0]?.id ?? null,
-                    searchId: routeResult.search_id,
-                    departure,
-                    destination,
-                    arrivalTarget: routeResult.arrival_time,
-                    plannedDepartureTime: routeResult.recommended_departure_time,
-                    routineStartTime: routeResult.prep_start_time,
-                    subPaths: routeResult.sub_paths,
-                    transportOption: transport.value,
-                  },
-                })}
-              />
+              text="시작"
+              onClick={() => navigate("/route/active", {
+                state: {
+                  routineId: activeRoutines[0]?.id ?? null,
+                  searchId: routeResult.search_id,
+                  departure,
+                  destination,
+                  arrivalTarget: routeResult.arrival_time,
+                  plannedDepartureTime: routeResult.recommended_departure_time,
+                  routineStartTime: routeResult.prep_start_time,
+                  subPaths: routeResult.sub_paths,
+                  transportOption,
+                },
+              })}
+            />
           </div>
         </div>
       </div>
@@ -409,7 +408,7 @@ export default function RouteSearch() {
           />
         </div>
 
-        {/* 에러 메시지 (폼 유효성 검사) */}
+        {/* 에러 메시지 */}
         {error && <p className="body-sm text-red-500 mb-4">{error}</p>}
 
         {/* 콘텐츠 영역 */}
@@ -501,6 +500,7 @@ export default function RouteSearch() {
             navigate={navigate}
             departure={departure}
             destination={destination}
+            transportOption={transport?.value}
           />
         ) : null}
       </div>
