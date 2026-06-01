@@ -78,6 +78,8 @@ export default function RouteActive() {
   const [now, setNow] = useState(new Date());
   const [alertOffsetMinutes, setAlertOffsetMinutes] = useState(null);
   const [alarmFired, setAlarmFired] = useState(false);
+  const [departed, setDeparted] = useState(false);
+  const [actualDepartureTime, setActualDepartureTime] = useState(null);
 
   // ── 알림 설정 가져오기 ──
   useEffect(() => {
@@ -237,11 +239,13 @@ export default function RouteActive() {
   // ── 지금 출발 ──
   const handleDepart = async () => {
     try {
-      await departCountdown(sessionId);
-      navigate("/route");
+      const res = await departCountdown(sessionId);
+      const departedAt = formatTime(res.departed_at);
+      setDeparted(true);
+      setActualDepartureTime(departedAt);
+      setSlackMinutes(res.slack_minutes);
     } catch (err) {
       console.error("출발 처리 실패", err);
-      navigate("/route");
     }
   };
 
@@ -275,7 +279,8 @@ export default function RouteActive() {
       };
     });
   };
-  const routeSteps = buildRouteSteps(plannedDepartureTime);
+  const effectiveDeparture = departed && actualDepartureTime ? actualDepartureTime : plannedDepartureTime;
+  const routeSteps = buildRouteSteps(effectiveDeparture);
 
   if (loading) {
     return (
@@ -347,8 +352,16 @@ export default function RouteActive() {
 
         <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 280px)" }}>
 
+          {/* 출발 완료 안내 */}
+          {departed && (
+            <div className="flex items-center gap-2 bg-green-50 border border-green-300 rounded-lg px-4 py-2.5 mb-4">
+              <span className="text-green-600 text-sm">🚀</span>
+              <p className="body-xs text-green-700 font-semibold">출발했어요! 안전하게 이동하세요.</p>
+            </div>
+          )}
+
           {/* 준비 단계 */}
-          <div className="mb-4">
+          {!departed && <div className="mb-4">
             <div className="flex items-center justify-between mb-3">
               <p className="body-xs text-blue-900">준비 단계</p>
               <p className="body-xs text-blue-900">{doneCount} / {steps.length} 완료</p>
@@ -405,10 +418,10 @@ export default function RouteActive() {
                 );
               })}
             </div>
-          </div>
+          </div>}
 
           {/* 여유 시간 프레임 */}
-          {slackMinutes > 0 && (
+          {!departed && slackMinutes > 0 && (
             <div className="flex items-start gap-3 mb-4">
               <span className="body-xs text-blue-1000 w-9 shrink-0 pt-2.5 text-right">
                 {calcActualDepartureTime()}
