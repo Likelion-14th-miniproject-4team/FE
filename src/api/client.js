@@ -24,7 +24,7 @@ client.interceptors.response.use(
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
           { refresh_token: localStorage.getItem("refresh_token") },
-          { headers: { "Content-Type": "application/json" } }
+          { headers: { "Content-Type": "application/json" } },
         );
         saveTokens(data.access_token, data.refresh_token);
         original.headers.Authorization = `Bearer ${data.access_token}`;
@@ -32,14 +32,18 @@ client.interceptors.response.use(
       } catch {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-        window.location.href = "/";
+        if (!import.meta.env.DEV) {
+          window.location.href = "/";
+        }
         return Promise.reject(error);
       }
     }
 
-    const message = error.response?.data?.message || `요청 실패 (${error.response?.status ?? "unknown"})`;
+    const message =
+      error.response?.data?.message ||
+      `요청 실패 (${error.response?.status ?? "unknown"})`;
     return Promise.reject(new Error(message));
-  }
+  },
 );
 
 export function saveTokens(accessToken, refreshToken) {

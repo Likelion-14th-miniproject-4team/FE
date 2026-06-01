@@ -358,7 +358,7 @@ export default function RouteSearch() {
         </p>
 
         {/* 검색 폼 */}
-        <div className="bg-gray-100 border border-gray-200 rounded-xl p-5 mb-4 flex items-center gap-3">
+        <div className="bg-gray-100 border border-gray-200 rounded-xl p-5 mb-4 flex items-end gap-3">
           <div className="flex flex-col gap-1 flex-1 min-w-0">
             <label className="body-md text-gray-600">출발지</label>
             <Input

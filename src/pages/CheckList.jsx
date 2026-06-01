@@ -173,8 +173,8 @@ export default function CheckList() {
   return (
     <div className="min-h-screen bg-white">
       {/* 제목 박스 */}
-      <div className="bg-blue-100 px-16 py-10">
-        <div className="max-w-xl mx-auto">
+      <div className="bg-blue-100 py-10">
+        <div className="max-w-xl mx-auto px-4">
           <p className="body-sm text-blue-500 mb-1">CheckList</p>
           <h1 className="title-h2 text-blue-900 leading-tight mb-3">
             체크<br />리스트
@@ -188,8 +188,8 @@ export default function CheckList() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
       {/* 목록 추가 */}
-        <div className="mb-6 max-w-xl mx-auto">
-          <p className="body-sm text-gray-500 mb-2">새 할 일 목록 추가</p>
+        <div className="mb-6 max-w-xl mx-auto px-4">
+          <p className="body-sm text-blue-900 mb-2">새 할 일 목록 추가</p>
             <div className="flex items-center gap-2">
               <Input
                 value={newItem}
@@ -253,7 +253,7 @@ export default function CheckList() {
             onClick={deleteSelected}
           />
           <Button
-            text="완료하기"
+            text="완료 →"
             onClick={handleComplete}
           />
         </div>
