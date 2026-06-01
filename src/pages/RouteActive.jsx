@@ -258,7 +258,6 @@ export default function RouteActive() {
         return updated;
       });
 
-      // res.next_item으로 직접 타이머 설정
       setActiveTimer(res.next_item ? res.next_item.duration_min * 60 : 0);
     } catch (err) {
       console.error("단계 완료 실패", err);
@@ -270,7 +269,14 @@ export default function RouteActive() {
     try {
       const departRes = await departCountdown(sessionId);
       const departedAt = formatTime(departRes.departed_at);
-      const newArrivalISO = toISOTime(arrivalTarget);
+
+      // 지금 출발 시각 기준으로 기존 경로 총 이동 시간을 더해 새 도착 예정 시각 계산
+      const routeTravelMinutes = subPaths.reduce(
+        (sum, p) => sum + (p.section_time ?? 0),
+        0,
+      );
+      const estimatedArrival = toTimeStr(toMinutes(departedAt) + routeTravelMinutes);
+      const newArrivalISO = toISOTime(estimatedArrival);
 
       try {
         const routeRes = await searchRoute({
@@ -326,6 +332,7 @@ export default function RouteActive() {
       };
     });
   };
+
   const effectiveDeparture =
     departed && actualDepartureTime
       ? actualDepartureTime
@@ -406,7 +413,7 @@ export default function RouteActive() {
         </div>
 
         {/* 지각 경고 */}
-        {isLate && (
+        {!departed && isLate && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mb-4">
             <span className="text-red-500 text-sm">⚠️</span>
             <p className="body-xs text-red-500">
