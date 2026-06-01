@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Button from "../components/Button";
 import { MdDirectionsBus, MdDirectionsWalk, MdSubway, MdLocationOn } from "react-icons/md";
-import { startCountdown, completeCountdownItem, departCountdown } from "../api/api";
+import { startCountdown, completeCountdownItem, departCountdown, getMe } from "../api/api";
 
 // ── 색상 매핑 객체 ──────────────────────────────────────────────
 const COLOR_MAP = {
@@ -73,9 +73,26 @@ export default function RouteActive() {
   const [sessionId, setSessionId] = useState(null);
   const [steps, setSteps] = useState([]);
   const [activeTimer, setActiveTimer] = useState(0);
-  const [slackMinutes, setSlackMinutes] = useState(0); // 백엔드에서 받은 slack
+  const [slackMinutes, setSlackMinutes] = useState(0);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
+  const [alertOffsetMinutes, setAlertOffsetMinutes] = useState(null);
+  const [alarmFired, setAlarmFired] = useState(false);
+
+  // ── 알림 설정 가져오기 ──
+  useEffect(() => {
+    const fetchAlertSetting = async () => {
+      try {
+        const res = await getMe();
+        if (res.alert_enabled && res.alert_offset_minutes) {
+          setAlertOffsetMinutes(res.alert_offset_minutes);
+        }
+      } catch (err) {
+        console.error("알림 설정 조회 실패", err);
+      }
+    };
+    fetchAlertSetting();
+  }, []);
 
   // ── 카운트다운 시작 ──
   useEffect(() => {
@@ -129,13 +146,36 @@ export default function RouteActive() {
     return () => clearInterval(timer);
   }, []);
 
+  // ── 브라우저 알림 체크 ──
+  useEffect(() => {
+    if (!alertOffsetMinutes || alarmFired || !plannedDepartureTime || plannedDepartureTime === "--:--") return;
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const departureMins = toMinutes(plannedDepartureTime);
+    const alertMins = departureMins - alertOffsetMinutes;
+    if (nowMins >= alertMins && !alarmFired) {
+      setAlarmFired(true);
+      if (Notification.permission === "granted") {
+        new Notification("When2Leave", {
+          body: `출발 ${alertOffsetMinutes}분 전이에요! 서둘러 준비하세요.`,
+        });
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then((perm) => {
+          if (perm === "granted") {
+            new Notification("When2Leave", {
+              body: `출발 ${alertOffsetMinutes}분 전이에요! 서둘러 준비하세요.`,
+            });
+          }
+        });
+      }
+    }
+  }, [now, alertOffsetMinutes, alarmFired, plannedDepartureTime]);
+
   const nowMins = now.getHours() * 60 + now.getMinutes();
   const remainSecs = Math.max(
     (toMinutes(plannedDepartureTime) - nowMins) * 60 - now.getSeconds(), 0
   );
   const doneCount = steps.filter((s) => s.status === "done").length;
 
-  // slack 기반으로 지각 여부 판단
   const isLate = slackMinutes < 0;
   const lateMinutes = Math.abs(slackMinutes);
 
@@ -167,7 +207,6 @@ export default function RouteActive() {
 
     try {
       const res = await completeCountdownItem(sessionId, { item_id: id, action: "complete" });
-      // 백엔드에서 받은 slack으로 업데이트
       setSlackMinutes(res.slack_minutes);
 
       setSteps((prev) => {
@@ -176,7 +215,6 @@ export default function RouteActive() {
           if (i === activeIndex + 1) return { ...s, status: "active" };
           return s;
         });
-        // 다음 항목 추가
         if (res.next_item && !updated.find((s) => s.id === res.next_item.id)) {
           updated.push({
             ...res.next_item,
@@ -189,6 +227,7 @@ export default function RouteActive() {
         return updated;
       });
 
+      // res.next_item으로 직접 타이머 설정
       setActiveTimer(res.next_item ? res.next_item.duration_min * 60 : 0);
     } catch (err) {
       console.error("단계 완료 실패", err);
@@ -206,11 +245,11 @@ export default function RouteActive() {
     }
   };
 
-  // ── 경로 상세 빌드 (lane_colors 적용) ──
-  const buildRouteSteps = () => {
+  // ── 경로 상세 빌드 ──
+  const buildRouteSteps = (startTime) => {
     if (!subPaths || subPaths.length === 0) return [];
     const typeMap = { 1: "subway", 2: "bus", 3: "walk" };
-    let cursor = plannedDepartureTime;
+    let cursor = startTime;
     return subPaths.map((path, i) => {
       const time = cursor;
       const [h, m] = cursor.split(":").map(Number);
@@ -220,9 +259,9 @@ export default function RouteActive() {
         : i === subPaths.length - 1 ? "arrival"
         : typeMap[path.traffic_type] ?? "walk";
 
-      // lane_colors에서 첫 번째 색상 사용
       const laneColor = path.lane_colors?.[0] ?? null;
-      const laneName = path.lane_names?.[0] ?? null;
+      const laneNames = path.lane_names ?? [];
+      const laneName = laneNames[0] ?? null;
 
       return {
         id: i,
@@ -232,10 +271,11 @@ export default function RouteActive() {
         sub: laneName ?? (path.distance ? `도보 ${path.distance}m` : null),
         detail: path.section_time ? `${path.section_time}분` : null,
         laneColor,
+        laneNames,
       };
     });
   };
-  const routeSteps = buildRouteSteps();
+  const routeSteps = buildRouteSteps(plannedDepartureTime);
 
   if (loading) {
     return (
@@ -295,7 +335,7 @@ export default function RouteActive() {
           )}
         </div>
 
-        {/* 지각 경고 - slack이 음수일 때 */}
+        {/* 지각 경고 */}
         {isLate && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mb-4">
             <span className="text-red-500 text-sm">⚠️</span>
@@ -307,6 +347,7 @@ export default function RouteActive() {
 
         <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 280px)" }}>
 
+          {/* 준비 단계 */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-3">
               <p className="body-xs text-blue-900">준비 단계</p>
@@ -366,7 +407,7 @@ export default function RouteActive() {
             </div>
           </div>
 
-          {/* 여유 시간 프레임 - slack이 양수일 때만 */}
+          {/* 여유 시간 프레임 */}
           {slackMinutes > 0 && (
             <div className="flex items-start gap-3 mb-4">
               <span className="body-xs text-blue-1000 w-9 shrink-0 pt-2.5 text-right">
@@ -391,6 +432,7 @@ export default function RouteActive() {
             </div>
           )}
 
+          {/* 경로 상세 */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <p className="body-xs text-blue-900">길찾기</p>
@@ -401,7 +443,6 @@ export default function RouteActive() {
                   {step.time}
                 </span>
                 <div className="flex flex-col items-center">
-                  {/* lane_color로 아이콘 배경색 적용 */}
                   <div
                     className="mt-2 w-5 h-5 rounded-lg border border-gray-200 flex items-center justify-center shrink-0"
                     style={step.laneColor ? { backgroundColor: step.laneColor + "33" } : {}}
