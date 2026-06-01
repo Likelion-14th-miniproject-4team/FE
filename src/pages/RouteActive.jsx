@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Button from "../components/Button";
 import { MdDirectionsBus, MdDirectionsWalk, MdSubway, MdLocationOn } from "react-icons/md";
@@ -59,6 +59,40 @@ function RouteIcon({ type }) {
   if (type === "arrival") return <MdLocationOn className={cls} />;
   if (type === "departure") return <MdLocationOn className={cls} />;
   return <MdDirectionsBus className={cls} />;
+}
+
+// ── 경로 상세 빌드 ──────────────────────────────────────────────
+function buildRouteSteps(subPaths, startTime) {
+  if (!subPaths || subPaths.length === 0) return [];
+  const typeMap = { 1: "subway", 2: "bus", 3: "walk" };
+  let cursor = startTime;
+  return subPaths.map((path, i) => {
+    const time = cursor;
+    const [h, m] = cursor.split(":").map(Number);
+    const total = h * 60 + m + path.section_time;
+    cursor = toTimeStr(total);
+    const type =
+      i === 0
+        ? "departure"
+        : i === subPaths.length - 1
+          ? "arrival"
+          : (typeMap[path.traffic_type] ?? "walk");
+
+    const laneColor = path.lane_colors?.[0] ?? null;
+    const laneNames = path.lane_names ?? [];
+    const laneName = laneNames[0] ?? null;
+
+    return {
+      id: i,
+      type,
+      time,
+      label: path.start_name ?? path.end_name ?? "이동",
+      sub: laneName ?? (path.distance ? `도보 ${path.distance}m` : null),
+      detail: path.section_time ? `${path.section_time}분` : null,
+      laneColor,
+      laneNames,
+    };
+  });
 }
 
 // ── 컴포넌트 ──────────────────────────────────────────
@@ -270,12 +304,14 @@ export default function RouteActive() {
       const departRes = await departCountdown(sessionId);
       const departedAt = formatTime(departRes.departed_at);
 
-      // 지금 출발 시각 기준으로 기존 경로 총 이동 시간을 더해 새 도착 예정 시각 계산
+      // departedAt + 기존 경로 이동 시간 + 10분 버퍼 = 새 도착 예정 시각
       const routeTravelMinutes = subPaths.reduce(
         (sum, p) => sum + (p.section_time ?? 0),
         0,
       );
-      const estimatedArrival = toTimeStr(toMinutes(departedAt) + routeTravelMinutes);
+      const estimatedArrival = toTimeStr(
+        toMinutes(departedAt) + routeTravelMinutes + 10,
+      );
       const newArrivalISO = toISOTime(estimatedArrival);
 
       try {
@@ -285,6 +321,7 @@ export default function RouteActive() {
           arrival_time: newArrivalISO,
           transport_option: transportOption,
         });
+        // subPaths와 actualDepartureTime을 한 번에 업데이트
         setSubPaths(routeRes.sub_paths);
         setActualDepartureTime(formatTime(routeRes.recommended_departure_time));
       } catch {
@@ -299,45 +336,17 @@ export default function RouteActive() {
     }
   };
 
-  // ── 경로 상세 빌드 ──
-  const buildRouteSteps = (startTime) => {
-    if (!subPaths || subPaths.length === 0) return [];
-    const typeMap = { 1: "subway", 2: "bus", 3: "walk" };
-    let cursor = startTime;
-    return subPaths.map((path, i) => {
-      const time = cursor;
-      const [h, m] = cursor.split(":").map(Number);
-      const total = h * 60 + m + path.section_time;
-      cursor = toTimeStr(total);
-      const type =
-        i === 0
-          ? "departure"
-          : i === subPaths.length - 1
-            ? "arrival"
-            : (typeMap[path.traffic_type] ?? "walk");
-
-      const laneColor = path.lane_colors?.[0] ?? null;
-      const laneNames = path.lane_names ?? [];
-      const laneName = laneNames[0] ?? null;
-
-      return {
-        id: i,
-        type,
-        time,
-        label: path.start_name ?? path.end_name ?? "이동",
-        sub: laneName ?? (path.distance ? `도보 ${path.distance}m` : null),
-        detail: path.section_time ? `${path.section_time}분` : null,
-        laneColor,
-        laneNames,
-      };
-    });
-  };
-
+  // ── effectiveDeparture ──
   const effectiveDeparture =
     departed && actualDepartureTime
       ? actualDepartureTime
       : plannedDepartureTime;
-  const routeSteps = buildRouteSteps(effectiveDeparture);
+
+  // ── routeSteps: subPaths나 effectiveDeparture 바뀔 때 자동 재계산 ──
+  const routeSteps = useMemo(
+    () => buildRouteSteps(subPaths, effectiveDeparture),
+    [subPaths, effectiveDeparture],
+  );
 
   if (loading) {
     return (
