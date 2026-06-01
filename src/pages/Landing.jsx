@@ -6,11 +6,11 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
       {/* 로고 */}
-      <div className="mb-6">
+      <div className="mb-3 sm:mb-6">
         <img
           src={hero}
           alt="when2leave"
-          className="w-85 h-auto object-contain"
+          className="w-50 sm:w-80 h-auto object-contain"
         />
       </div>
 
@@ -24,7 +24,7 @@ export default function Landing() {
       </div>
 
       {/* 하단 설명 박스 */}
-      <div className="rounded-lg px-12 py-4 mb-8 text-center">
+      <div className="rounded-lg px-6 py-3 mb-5 sm:px-12 sm:py-4 sm:mb-8 text-center">
         <p className="body-xl text-blue-900 leading-relaxed">
           계획에 늦으시지 않게 저희가 도와드리겠습니다
         </p>
@@ -36,7 +36,7 @@ export default function Landing() {
         onClick={() => { window.location.href = import.meta.env.VITE_KAKAO_LOGIN_URL; }}
         bgColor="var(--color-beige-500)"
         textColor="var(--color-blue-900)"
-        className="h-15 px-12 py-3 title-h4"
+        className="h-12 px-8 py-2 sm:h-15 sm:px-12 sm:py-3 title-h4"
       />
     </div>
   );

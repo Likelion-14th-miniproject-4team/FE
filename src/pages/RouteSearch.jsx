@@ -165,7 +165,7 @@ function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, togg
   const routeMinutes = Math.max(routeResult.total_minutes - routeResult.routine_minutes, 0);
 
   return (
-    <div className="grid grid-cols-[1fr_auto] gap-4">
+    <div className="flex flex-col md:grid md:grid-cols-[1fr_auto] gap-4">
       {/* 타임라인 */}
       <div>
         <h2 className="title-h4 text-blue-900 mb-3">타임라인</h2>
@@ -202,7 +202,7 @@ function RouteResultPanel({ routeResult, activeRoutines, allChecklistItems, togg
       </div>
 
       {/* 우측 패널 */}
-      <div className="flex flex-col gap-4 w-72">
+      <div className="flex flex-col gap-4 w-full md:w-72">
         {/* 체크 리스트 */}
         <div className="bg-gray-100 border border-gray-200 rounded-xl p-5">
           {allChecklistItems.length > 0 ? (
@@ -349,7 +349,7 @@ export default function RouteSearch() {
   ];
 
   return (
-    <div className="min-h-screen bg-white px-7 py-5">
+    <div className="min-h-screen bg-white px-4 md:px-7 py-5">
       <div className="max-w-6xl mx-auto">
         <h1 className="title-h2 text-blue-900 mb-2">길찾기</h1>
         <p className="body-sm text-gray-600 mb-6">
@@ -358,7 +358,7 @@ export default function RouteSearch() {
         </p>
 
         {/* 검색 폼 */}
-        <div className="bg-gray-100 border border-gray-200 rounded-xl p-5 mb-4 flex items-center gap-3">
+        <div className="bg-gray-100 border border-gray-200 rounded-xl p-5 mb-4 flex flex-col md:flex-row md:items-end gap-3">
           <div className="flex flex-col gap-1 flex-1 min-w-0">
             <label className="body-md text-gray-600">출발지</label>
             <Input
@@ -404,7 +404,7 @@ export default function RouteSearch() {
             onClick={isSearching ? undefined : handleSearch}
             bgColor={isSearching ? "var(--color-gray-400)" : "var(--color-blue-900)"}
             textColor={isSearching ? "var(--color-gray-100)" : "var(--color-blue-100)"}
-            className="p-3 shrink-0"
+            className="p-3 w-full md:w-auto md:shrink-0"
           />
         </div>
 
@@ -417,7 +417,7 @@ export default function RouteSearch() {
             불러오는 중...
           </div>
         ) : step === 1 ? (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 커스텀 루틴 */}
             <div>
               <h2 className="title-h4 text-blue-900 mb-3">커스텀 루틴</h2>

@@ -19,11 +19,11 @@ function RouteCard({ searched_at, origin, destination }) {
   const date = new Date(searched_at);
   const formatted = `${String(date.getFullYear()).slice(2)}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
   return (
-    <div className="flex items-center bg-beige-300 rounded-lg px-6 py-4">
-      <span className="title-h4 text-gray-1000 w-28 shrink-0">
+    <div className="flex flex-col sm:flex-row sm:items-center bg-beige-300 rounded-lg px-6 py-4 gap-1">
+      <span className="title-h4 text-gray-1000 sm:w-28 sm:shrink-0">
         {formatted}
       </span>
-      <span className="body-lg text-gray-1000 flex-1">
+      <span className="body-lg text-gray-1000 break-all sm:flex-1">
         {origin} → {destination}
       </span>
     </div>
@@ -233,14 +233,14 @@ export default function MyPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* 제목 */}
-      <div className="px-16 pt-8 pb-6">
+      <div className="px-4 md:px-16 pt-8 pb-6">
         <h1 className="title-display text-blue-700">MY PAGE</h1>
       </div>
 
       {/* 콘텐츠 */}
-      <div className="px-16 flex gap-12">
+      <div className="px-4 md:px-16 flex flex-col md:flex-row gap-12">
         {/* 왼쪽: 프로필 */}
-        <div className="flex flex-col items-center w-60 shrink-0">
+        <div className="flex flex-col items-center w-full md:w-60 md:shrink-0">
           <div className="bg-blue-100 w-48 h-48 rounded-full flex items-center justify-center overflow-hidden mb-4">
             {profileImage ? (
               <img src={profileImage} alt="프로필" className="w-full h-full object-cover" />
